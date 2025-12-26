@@ -10,9 +10,14 @@ class Exercise(models.Model):
     image_file = models.CharField(max_length=512, blank=True, default="")
 
     # Embedding fields
-    embedding = VectorField(dimensions=768, null=True, blank=True)
+    embedding = VectorField(dimensions=1536, null=True, blank=True)
     embedding_text = models.TextField(blank=True, default="")
-    embedding_model = models.CharField(max_length=64, blank=True, default="gemini-embedding-001@768")
+    embedding_model = models.CharField(
+        max_length=64,
+        blank=True,
+        default="text-embedding-3-small@1536",
+    )
+
 
     created_at = models.DateTimeField(auto_now_add=True)
 

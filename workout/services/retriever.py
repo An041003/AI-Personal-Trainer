@@ -52,7 +52,7 @@ def retrieve_exercises(
             for m in muscles:
                 qs2 = qs2.filter(muscle_groups__contains=[m])
 
-        qvec = embed_query(q, output_dim=768)
+        qvec = embed_query(q, output_dim=1536)
         return list(
             qs2.annotate(distance=CosineDistance("embedding", qvec))
                .order_by("distance")[:limit_int]

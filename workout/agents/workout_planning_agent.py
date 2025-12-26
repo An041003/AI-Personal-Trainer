@@ -1,63 +1,47 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
+
+from langchain_core.documents import Document
 
 from workout.llms.llm_client import LLMClient
 
 
-def _response_schema() -> Dict[str, Any]:
-    # Schema tối thiểu để ép JSON đúng format
-    return {
-        "type": "OBJECT",
-        "required": ["goal", "days_per_week", "session_minutes", "split", "days"],
-        "properties": {
-            "goal": {"type": "STRING"},
-            "days_per_week": {"type": "INTEGER"},
-            "session_minutes": {"type": "INTEGER"},
-            "split": {"type": "STRING"},
-            "days": {
-                "type": "ARRAY",
-                "items": {
-                    "type": "OBJECT",
-                    "required": ["day", "exercises"],
-                    "properties": {
-                        "day": {"type": "STRING"},
-                        "exercises": {
-                            "type": "ARRAY",
-                            "items": {
-                                "type": "OBJECT",
-                                "required": ["exercise_id", "sets", "reps", "rest_sec", "notes"],
-                                "properties": {
-                                    "exercise_id": {"type": "INTEGER"},
-                                    "sets": {"type": "INTEGER"},
-                                    "reps": {"type": "STRING"},
-                                    "rest_sec": {"type": "INTEGER"},
-                                    "notes": {"type": "STRING"},
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    }
+def _format_candidate_lines_from_docs(documents: List[Document], max_items: int = 60) -> str:
+    lines: List[str] = []
+    for d in documents[:max_items]:
+        m = d.metadata or {}
+        eid = m.get("id")
+        title = m.get("title", "")
+        muscles = m.get("muscle_groups") or []
+        equipment = m.get("equipment") or []
+        level = m.get("level") or ""
+        lines.append(
+            f"- id={eid} | {title} | muscles={','.join(map(str, muscles))} | "
+            f"equip={','.join(map(str, equipment))} | level={level}"
+        )
+    return "\n".join(lines)
+
+
+def _format_candidate_lines_fallback(candidates: List[Dict[str, Any]]) -> str:
+    lines: List[str] = []
+    for c in candidates:
+        mg = ",".join([str(x) for x in (c.get("muscle_groups") or [])])
+        lines.append(f"- id={c['id']} | {c.get('title','')} | muscles={mg}")
+    return "\n".join(lines)
 
 
 def _build_prompt(
     profile: Dict[str, Any],
     constraints: Dict[str, Any],
     candidates: List[Dict[str, Any]],
+    documents: Optional[List[Document]] = None,
     issues: Optional[List[Dict[str, Any]]] = None,
     prev_plan: Optional[Dict[str, Any]] = None,
 ) -> str:
-    # Giữ prompt gọn: LLM chỉ cần candidate ids + vài fields để chọn hợp lý
-    candidate_lines = []
-    for c in candidates:
-        mg = ",".join([str(x) for x in (c.get("muscle_groups") or [])])
-        candidate_lines.append(f"- id={c['id']} | {c.get('title','')} | muscles={mg}")
+    parts: List[str] = []
 
-    parts = []
     parts.append("Nhiệm vụ: tạo lịch tập tuần dạng JSON đúng schema, chỉ được dùng exercise_id có trong danh sách.")
     parts.append("")
     parts.append("Input profile:")
@@ -66,8 +50,12 @@ def _build_prompt(
     parts.append("Constraints:")
     parts.append(json.dumps(constraints, ensure_ascii=False))
     parts.append("")
+
     parts.append("Candidate exercises (chỉ được chọn id trong danh sách này):")
-    parts.append("\n".join(candidate_lines))
+    if documents is not None:
+        parts.append(_format_candidate_lines_from_docs(documents, max_items=60))
+    else:
+        parts.append(_format_candidate_lines_fallback(candidates))
 
     if prev_plan:
         parts.append("")
@@ -84,6 +72,9 @@ def _build_prompt(
     parts.append("- Chỉ trả về JSON hợp lệ, không thêm chữ giải thích.")
     parts.append("- Không dùng id ngoài candidate list.")
     parts.append("- Mỗi buổi tối đa max_exercises_per_day bài.")
+    if constraints.get("min_exercises_per_day"):
+        parts.append("- Mỗi buổi tối thiểu min_exercises_per_day bài.")
+
     return "\n".join(parts)
 
 
@@ -94,6 +85,14 @@ def generate_plan_with_llm(
     candidates: List[Dict[str, Any]],
     issues: Optional[List[Dict[str, Any]]] = None,
     prev_plan: Optional[Dict[str, Any]] = None,
+    documents: Optional[List[Document]] = None,  # Phase 3: thêm tham số này
 ) -> Dict[str, Any]:
-    prompt = _build_prompt(profile, constraints, candidates, issues=issues, prev_plan=prev_plan)
-    return llm.generate_plan_json(prompt=prompt, response_schema=_response_schema())
+    prompt = _build_prompt(
+        profile=profile,
+        constraints=constraints,
+        candidates=candidates,
+        documents=documents,
+        issues=issues,
+        prev_plan=prev_plan,
+    )
+    return llm.generate_plan_json(prompt=prompt)
