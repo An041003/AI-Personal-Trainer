@@ -1,0 +1,55 @@
+canonical_name,display_name_vi,category,food_role,edible_form,kcal_per_100g,protein_g_per_100g,carb_g_per_100g,fat_g_per_100g,fiber_g_per_100g,sodium_mg_per_100g,default_serving_g,aliases,source,is_active
+chicken_breast,Ức gà,protein_animal,protein_source,cooked,165,31,0,3.6,0,74,120,uc ga|ức gà|chicken breast|breast chicken,manual_seed,1
+chicken_thigh,Đùi gà,protein_animal,protein_source,cooked,209,26,0,10.9,0,90,120,dui ga|đùi gà|chicken thigh,manual_seed,1
+lean_beef,Thịt bò nạc,protein_animal,protein_source,cooked,217,26,0,12,0,72,100,thit bo nac|thịt bò nạc|lean beef|beef,manual_seed,1
+pork_tenderloin,Thịt thăn heo,protein_animal,protein_source,cooked,143,26,0,3.5,0,57,100,thit than heo|thịt thăn heo|pork tenderloin,manual_seed,1
+egg,Trứng gà,protein_animal,protein_source,cooked,155,13,1.1,11,0,124,50,trung ga|trứng gà|egg|boiled egg,manual_seed,1
+egg_white,Lòng trắng trứng,protein_animal,protein_source,cooked,52,11,0.7,0.2,0,166,100,long trang trung|lòng trắng trứng|egg white,manual_seed,1
+tuna,Cá ngừ,protein_animal,protein_source,cooked,132,28,0,1,0,47,100,ca ngu|cá ngừ|tuna,manual_seed,1
+salmon,Cá hồi,protein_animal,protein_source,cooked,208,20,0,13,0,59,100,ca hoi|cá hồi|salmon,manual_seed,1
+shrimp,Tôm,protein_animal,protein_source,cooked,99,24,0.2,0.3,0,111,100,tom|tôm|shrimp,manual_seed,1
+white_fish,Cá trắng,protein_animal,protein_source,cooked,105,23,0,1,0,90,100,ca trang|cá trắng|white fish,manual_seed,1
+tofu,Đậu phụ,protein_plant,protein_source,cooked,76,8,1.9,4.8,0.3,7,100,dau phu|đậu phụ|tofu,manual_seed,1
+tempeh,Tempeh,protein_plant,protein_source,cooked,193,20,9,11,0,9,100,tempeh|đậu nành lên men,manual_seed,1
+edamame,Đậu nành Nhật,protein_plant,protein_source,cooked,121,11.9,8.9,5.2,5.2,6,100,edamame|dau nanh nhat|đậu nành nhật,manual_seed,1
+lentil,Đậu lăng,protein_plant,protein_source,cooked,116,9,20,0.4,7.9,2,100,dau lang|đậu lăng|lentil,manual_seed,1
+chickpea,Đậu gà,protein_plant,protein_source,cooked,164,8.9,27.4,2.6,7.6,7,100,dau ga|đậu gà|chickpea,manual_seed,1
+black_bean,Đậu đen,protein_plant,protein_source,cooked,132,8.9,23.7,0.5,8.7,1,100,dau den|đậu đen|black bean,manual_seed,1
+cooked_white_rice,Cơm trắng,starchy_carb,carb_source,cooked,130,2.7,28,0.3,0.4,1,150,com trang|cơm trắng|white rice|cooked rice,manual_seed,1
+cooked_brown_rice,Cơm gạo lứt,starchy_carb,carb_source,cooked,123,2.7,25.6,1,1.8,4,150,com gao lut|cơm gạo lứt|brown rice,manual_seed,1
+sweet_potato,Khoai lang,starchy_carb,carb_source,cooked,86,1.6,20.1,0.1,3,55,150,khoai lang|sweet potato,manual_seed,1
+potato,Khoai tây,starchy_carb,carb_source,cooked,87,1.9,20.1,0.1,1.8,6,150,khoai tay|khoai tây|potato,manual_seed,1
+oats,Yến mạch,grain,carb_source,raw,389,16.9,66.3,6.9,10.6,2,50,yen mach|yến mạch|oats|oatmeal,manual_seed,1
+whole_wheat_bread,Bánh mì nguyên cám,grain,carb_source,cooked,247,13,41,4.2,7,400,60,banh mi nguyen cam|bánh mì nguyên cám|whole wheat bread,manual_seed,1
+rice_noodle,Bún/phở gạo,starchy_carb,carb_source,cooked,109,1.8,24.9,0.2,1,5,150,bun|bún|pho|phở|rice noodle,manual_seed,1
+pasta,Mì pasta,grain,carb_source,cooked,131,5,25,1.1,1.8,6,150,mi y|mì ý|pasta,manual_seed,1
+corn,Ngô,starchy_carb,carb_source,cooked,96,3.4,21,1.5,2.4,1,100,ngo|ngô|corn,manual_seed,1
+broccoli,Bông cải xanh,vegetable,vegetable,cooked,35,2.4,7.2,0.4,3.3,41,100,bong cai xanh|bông cải xanh|sup lo xanh|súp lơ xanh|broccoli,manual_seed,1
+spinach,Cải bó xôi,vegetable,vegetable,cooked,23,2.9,3.6,0.4,2.2,79,100,cai bo xoi|cải bó xôi|spinach,manual_seed,1
+cucumber,Dưa chuột,vegetable,vegetable,raw,15,0.7,3.6,0.1,0.5,2,100,dua chuot|dưa chuột|cucumber,manual_seed,1
+carrot,Cà rốt,vegetable,vegetable,raw,41,0.9,9.6,0.2,2.8,69,100,ca rot|cà rốt|carrot,manual_seed,1
+tomato,Cà chua,vegetable,vegetable,raw,18,0.9,3.9,0.2,1.2,5,100,ca chua|cà chua|tomato,manual_seed,1
+cabbage,Bắp cải,vegetable,vegetable,raw,25,1.3,5.8,0.1,2.5,18,100,bap cai|bắp cải|cabbage,manual_seed,1
+lettuce,Xà lách,vegetable,vegetable,raw,15,1.4,2.9,0.2,1.3,28,100,xa lach|xà lách|lettuce,manual_seed,1
+bell_pepper,Ớt chuông,vegetable,vegetable,raw,31,1,6,0.3,2.1,4,100,ot chuong|ớt chuông|bell pepper,manual_seed,1
+mushroom,Nấm,vegetable,vegetable,cooked,22,3.1,3.3,0.3,1,5,100,nam|nấm|mushroom,manual_seed,1
+banana,Chuối,fruit,fruit,raw,89,1.1,22.8,0.3,2.6,1,100,chuoi|chuối|banana,manual_seed,1
+apple,Táo,fruit,fruit,raw,52,0.3,13.8,0.2,2.4,1,150,tao|táo|apple,manual_seed,1
+orange,Cam,fruit,fruit,raw,47,0.9,11.8,0.1,2.4,0,150,cam|orange,manual_seed,1
+avocado,Bơ,fruit,fat_source,raw,160,2,8.5,14.7,6.7,7,100,bo|bơ|avocado,manual_seed,1
+strawberry,Dâu tây,fruit,fruit,raw,32,0.7,7.7,0.3,2,1,100,dau tay|dâu tây|strawberry,manual_seed,1
+low_fat_milk,Sữa ít béo,dairy,dairy,liquid,42,3.4,5,1,0,44,250,sua it beo|sữa ít béo|low fat milk,manual_seed,1
+greek_yogurt,Sữa chua Hy Lạp,dairy,dairy,cooked,59,10,3.6,0.4,0,36,170,sua chua hy lap|sữa chua hy lạp|greek yogurt,manual_seed,1
+cottage_cheese,Phô mai tươi,dairy,dairy,cooked,98,11,3.4,4.3,0,364,100,pho mai tuoi|phô mai tươi|cottage cheese,manual_seed,1
+soy_milk,Sữa đậu nành,dairy,dairy,liquid,33,2.9,1.7,1.6,0.6,51,250,sua dau nanh|sữa đậu nành|soy milk,manual_seed,1
+olive_oil,Dầu ô liu,fat_oil,fat_source,liquid,884,0,0,100,0,2,10,dau oliu|dầu ô liu|olive oil,manual_seed,1
+peanut_butter,Bơ đậu phộng,fat_oil,fat_source,cooked,588,25,20,50,6,459,20,bo dau phong|bơ đậu phộng|peanut butter,manual_seed,1
+almond,Hạnh nhân,fat_oil,fat_source,raw,579,21,22,50,12.5,1,20,hanh nhan|hạnh nhân|almond,manual_seed,1
+cashew,Hạt điều,fat_oil,fat_source,raw,553,18,30,44,3.3,12,20,hat dieu|hạt điều|cashew,manual_seed,1
+chia_seed,Hạt chia,fat_oil,fat_source,raw,486,16.5,42.1,30.7,34.4,16,15,hat chia|hạt chia|chia seed,manual_seed,1
+fish_sauce,Nước mắm,condiment,condiment,liquid,35,5,3,0,0,7700,10,nuoc mam|nước mắm|fish sauce,manual_seed,1
+soy_sauce,Nước tương,condiment,condiment,liquid,53,8,4.9,0.6,0.8,5493,10,nuoc tuong|nước tương|soy sauce,manual_seed,1
+salt,Muối,condiment,condiment,powder,0,0,0,0,0,38758,2,muoi|muối|salt,manual_seed,1
+honey,Mật ong,condiment,carb_source,liquid,304,0.3,82.4,0,0.2,4,10,mat ong|mật ong|honey,manual_seed,1
+whey_protein,Whey protein,supplement,supplement,powder,400,80,8,6,0,200,30,whey|protein powder|whey protein,manual_seed,1
+water,Nước lọc,beverage,beverage,liquid,0,0,0,0,0,0,250,nuoc loc|nước lọc|water,manual_seed,1
