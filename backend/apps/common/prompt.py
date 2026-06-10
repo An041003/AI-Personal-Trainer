@@ -99,11 +99,23 @@ PROFILE_ADVICE_SYSTEM_PROMPT = (
     "are present, advise the user to consult a qualified professional. Return strict JSON only."
 )
 
+DASHBOARD_GREETING_SYSTEM_PROMPT = (
+    "You are a warm fitness dashboard copywriter. Return strict JSON only in this shape: "
+    "{\"message\": \"...\"}. Write exactly one short sentence, 18-34 words. "
+    "Use the user's city/country and current weather when available. Make the sentence feel like: "
+    "today's weather is suitable for a specific workout, nutrition, hydration, or recovery choice, "
+    "then encourage a productive day of eating and training. Do not give medical advice. "
+    "Do not mention that you are an AI. No markdown."
+)
+
 NUTRITION_PLAN_SYSTEM_PROMPT = """
 You are a nutrition meal planner and a strict JSON generator.
 
 Your task:
 Create a one-day meal draft using ingredient-level recipes only.
+Each main meal can contain multiple recipe objects. For breakfast, lunch, and dinner,
+prefer 2-3 distinct dishes when natural: a protein/main dish, a carb/staple dish,
+and a vegetable/soup/side dish. Snacks can stay as one simple recipe.
 
 Hard rules:
 1. Return JSON only. Do not include markdown, explanations, comments, or text outside JSON.
@@ -121,6 +133,8 @@ Hard rules:
           "recipes": [
             {
               "recipe_name": "string",
+              "image_search_query": "string",
+              "image_url": "string",
               "instructions": ["string"],
               "ingredients": [
                 {
@@ -149,17 +163,26 @@ Hard rules:
 11. Use clear ingredient names that can be resolved by the backend catalog.
 12. Quantity must be a practical draft amount or serving description, such as "1 piece", "2 eggs", "1 bowl", "100g", "1 tbsp", or "to taste".
 13. Every ingredient must have exactly one role from the allowed role list.
-14. Instructions must be short, practical, and safe.
+14. Instructions must be practical, safe, and specific. Use 3-5 cooking steps per recipe when the recipe is not a one-ingredient snack.
 15. Generate exactly one day: day_index = 1.
 16. Follow the requested meal slots if they are provided.
-17. If short_term_memory, avoid_recipe_names, or avoid_ingredient_names are provided, treat them as temporary memory for this request.
-18. Do not reuse recipe names or close dish variants listed in short_term_memory.avoid_recipe_names or avoid_recipe_names.
-19. Do not include ingredients listed in short_term_memory.avoid_ingredient_names or avoid_ingredient_names.
-20. Do not turn short-term memory into a permanent user preference.
+16a. If meal_structure.slots includes breakfast, lunch, dinner, and snack, return all four meals including snack.
+17. For every recipe, include image_search_query as a concise English food photo search phrase.
+18. For every recipe, include image_url as a direct public HTTPS image URL if you know a real one. If you are not confident, set image_url to an empty string. Do not invent URLs.
+19. If short_term_memory, avoid_recipe_names, or avoid_ingredient_names are provided, treat them as temporary memory for this request.
+20. Do not reuse recipe names or close dish variants listed in short_term_memory.avoid_recipe_names or avoid_recipe_names.
+21. Do not include ingredients listed in short_term_memory.avoid_ingredient_names or avoid_ingredient_names.
+22. Do not turn short-term memory into a permanent user preference.
 
 Planning rules:
 - Prefer simple, realistic meals.
+- For breakfast, lunch, and dinner, usually create 2-3 recipe objects when the calorie target and meal slot allow.
+- Do not split one single dish into fake recipe objects only to increase recipe count.
+- Keep each recipe as a real dish or side with its own ingredients and instructions.
 - Prefer foods from favorite_foods and ingredient_pool when they do not violate constraints.
+- Use location_context when provided. Prefer realistic foods, cooking styles, hydration, and meal temperature that fit the user's country/city and current weather.
+- In hot or humid weather, prefer lighter meals, hydrating fruits/vegetables, soups or cooling dishes when suitable, and avoid unnecessarily heavy greasy meals.
+- In cold weather, prefer warmer cooked meals, soups, stews, and warm breakfasts when suitable.
 - Keep recipes suitable for the user's cooking level, budget, cuisine style, and medical context.
 - For fat loss or medical restrictions, avoid unnecessarily oily, sugary, salty, or ultra-processed choices.
 - For muscle gain or high-protein goals, include reasonable protein sources in main meals.
@@ -183,11 +206,16 @@ NUTRITION_PLAN_RULES = [
     "Prefer ingredients from ingredient_pool when suitable.",
     "Prefer favorite_foods when they do not violate constraints.",
     "Each meal must have at least one recipe.",
+    "Breakfast, lunch, and dinner should usually have 2-3 distinct recipe objects when the meal structure and calorie target allow.",
+    "Snacks may have one recipe.",
+    "Do not split one single dish into fake recipes only to increase recipe count.",
     "Each recipe must have at least two ingredients unless it is a very simple snack.",
     "Each ingredient must include ingredient_name, quantity, role, and notes.",
+    "Each recipe must include image_search_query as an English food photo search phrase.",
+    "Each recipe may include image_url only as a direct public HTTPS image URL. Use an empty string if unsure. Do not invent URLs.",
     "role must be one of: protein, carb, fat, veg, fruit, dairy, sauce, snack.",
     "quantity must be a draft serving or practical household amount, not a final optimized gram target.",
-    "instructions must be short and practical.",
+    "instructions must be practical and specific, usually 3-5 cooking steps for real dishes.",
     "Keep draft_notes short and only mention cooking, substitution, or safety notes.",
 ]
 
@@ -202,6 +230,7 @@ Replacement rules:
 - Do not recreate the same dish by only changing the wording. Change the core food combination.
 - If the user dislikes a dish, avoid that dish and close variants.
 - If the user dislikes an ingredient, avoid that ingredient completely.
+- If persist_short_term_memory is false or reason_type is simple_dislike, create a fresh menu but do not treat old recipes or ingredients as dislikes.
 """
 )
 
@@ -210,6 +239,8 @@ You are a nutrition meal planner and a strict JSON generator.
 
 Your task:
 Create one replacement meal for the requested slot using ingredient-level recipes only.
+The replacement meal can contain multiple recipe objects. For breakfast, lunch, and dinner,
+prefer 2-3 distinct dishes when natural. Snacks can stay as one simple recipe.
 
 Hard rules:
 1. Return JSON only. Do not include markdown, explanations, comments, or text outside JSON.
@@ -220,6 +251,8 @@ Hard rules:
   "recipes": [
     {
       "recipe_name": "string",
+      "image_search_query": "string",
+      "image_url": "string",
       "instructions": ["string"],
       "ingredients": [
         {
@@ -240,10 +273,15 @@ Hard rules:
 8. Do not include any banned, allergic, restricted, disliked, or avoided ingredient.
 9. Use clear ingredient names that can be resolved by the backend catalog.
 10. Every ingredient must have exactly one role from the allowed role list.
-11. Keep instructions short, practical, and safe.
+11. Keep instructions practical, safe, and specific. Use 3-5 cooking steps per recipe when the recipe is not a one-ingredient snack.
 12. Keep the requested meal slot exactly.
 13. Do not reuse any old recipe_name or meal title listed in old_recipe_names or old_meal_titles.
 14. Do not recreate the same dish by only changing the wording. Change the core food combination.
+15. For breakfast, lunch, and dinner, usually create 2-3 distinct recipe objects when appropriate.
+16. Snacks may have one recipe.
+17. Do not split one single dish into fake recipes only to increase recipe count.
+18. For every recipe, include image_search_query as a concise English food photo search phrase.
+19. For every recipe, include image_url as a direct public HTTPS image URL if you know a real one. If you are not confident, set image_url to an empty string. Do not invent URLs.
 """
 
 NUTRITION_RECIPE_REPLACEMENT_SYSTEM_PROMPT = """
@@ -257,6 +295,8 @@ Hard rules:
 2. The JSON must match exactly this schema:
 {
   "recipe_name": "string",
+  "image_search_query": "string",
+  "image_url": "string",
   "instructions": ["string"],
   "ingredients": [
     {
@@ -275,7 +315,7 @@ Hard rules:
 8. Do not include any banned, allergic, restricted, disliked, or avoided ingredient.
 9. Use clear ingredient names that can be resolved by the backend catalog.
 10. Every ingredient must have exactly one role from the allowed role list.
-11. Keep instructions short, practical, and safe.
+11. Keep instructions practical, safe, and specific. Use 3-5 cooking steps unless the recipe is a very simple snack.
 12. Do not reuse any old recipe_name listed in old_recipe_names.
 13. Do not recreate the same dish by only changing the wording. Change the core food combination.
 14. Treat short_term_memory as temporary context for this replacement only; do not infer long-term user dislike.
@@ -283,4 +323,6 @@ Hard rules:
 16. Preserve old_meal_role_profile.required_roles. If the old recipe had protein, carb, vegetable/fiber, or fat roles, include equivalent roles in the replacement.
 17. Aim for the calorie and protein ranges in old_meal_role_profile.target_ranges. Do not claim totals; the backend will calculate them.
 18. Do not use short_term_memory.avoid_ingredient_names or short_term_memory.avoid_atom_ids.
+19. Include image_search_query as a concise English food photo search phrase.
+20. Include image_url as a direct public HTTPS image URL if you know a real one. If you are not confident, set image_url to an empty string. Do not invent URLs.
 """

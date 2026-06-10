@@ -13,3 +13,10 @@ export function profileAdvice(data) {
   return apiRequest("/profile/advice/", { method: "POST", body: data });
 }
 
+export function getDashboardGreeting() {
+  return apiRequest("/profile/dashboard-greeting/");
+}
+
+export function updateProfileWeather(data) {
+  return apiRequest("/profile/weather/", { method: "POST", body: data });
+}

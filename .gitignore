@@ -1,5 +1,6 @@
 .env
 .venv/
+.venv-backend/
 .run/
 __pycache__/
 *.py[cod]
@@ -8,3 +9,7 @@ media/
 node_modules/
 dist/
 .DS_Store
+
+# Local agent skills and install metadata
+.agents/
+skills-lock.json

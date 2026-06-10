@@ -45,3 +45,30 @@ class WorkoutIntentAnalysis(models.Model):
 
     def __str__(self):
         return f"Intent analysis #{self.pk}"
+
+
+class WorkoutCompletion(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="workout_completions")
+    workout_date = models.DateField(db_index=True)
+    plan = models.ForeignKey(
+        "common.Plan",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="workout_completions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "workout_completion"
+        ordering = ["-workout_date"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "workout_date"], name="uniq_workout_completion_user_date"),
+        ]
+        indexes = [
+            models.Index(fields=["user", "workout_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.workout_date}"

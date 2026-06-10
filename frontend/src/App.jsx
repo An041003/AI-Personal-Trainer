@@ -37,9 +37,11 @@ export default function App() {
     setBooting(true);
     me()
       .then(setUser)
-      .catch(() => {
-        setAuthToken("");
-        navigate("/login");
+      .catch((err) => {
+        if (err.status === 401 || err.status === 403) {
+          setAuthToken("");
+          navigate("/login");
+        }
       })
       .finally(() => setBooting(false));
   }, [isPublicPath, navigate]);

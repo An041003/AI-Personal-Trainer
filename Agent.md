@@ -45,6 +45,7 @@ Dự án phải được **xây lại từ đầu**, không code chắp vá từ
 - React Router
 - Axios hoặc fetch wrapper
 - lucide-react hoặc Feather-style icons
+- Khi làm mới, redesign, hoặc chỉnh UI/frontend, phải dùng skill `design-taste-frontend` đã cài trong `.agents/skills/design-taste-frontend` để giữ chất lượng layout, typography, spacing, motion và tránh giao diện MVP thô. Không áp dụng skill này cho backend/API/database trừ khi task có phần giao diện liên quan.
 
 ### Database
 

@@ -11,7 +11,7 @@ import {
   searchExercises,
 } from "../api/workout";
 import { FocusMuscles } from "../components/FocusMuscles";
-import { ErrorBanner, Field, JsonBlock, TextArea, TextInput } from "../components/FormControls";
+import { ErrorBanner, Field, TextArea, TextInput } from "../components/FormControls";
 import { getProfileCompleteness } from "../utils/profileCompleteness";
 
 
@@ -24,6 +24,33 @@ const trainingDayOptions = [
   { value: "sat", label: "Sat" },
   { value: "sun", label: "Sun" },
 ];
+
+const DAY_LABELS = trainingDayOptions.reduce((labels, day) => {
+  labels[day.value] = day.label;
+  return labels;
+}, {});
+
+const FULL_DAY_LABELS = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+  sun: "Sunday",
+};
+
+function normalizeDayKey(value) {
+  const key = String(value || "").trim().toLowerCase().slice(0, 3);
+  return DAY_LABELS[key] ? key : "";
+}
+
+function formatDayLabel(value, variant = "short") {
+  const key = normalizeDayKey(value);
+  if (key) return variant === "long" ? FULL_DAY_LABELS[key] : DAY_LABELS[key];
+  const text = String(value || "Day").trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "Day";
+}
 
 function normalizeTrainingDays(value) {
   if (Array.isArray(value)) return value;
@@ -98,6 +125,32 @@ function matchesExerciseSearch(exercise, query) {
     .toLowerCase();
 
   return haystack.includes(normalized);
+}
+
+function hasFocusMuscles(intent) {
+  return Array.isArray(intent?.focus_muscles) && intent.focus_muscles.filter(Boolean).length > 0;
+}
+
+function ExerciseThumb({ exercise, size = "md" }) {
+  const [failed, setFailed] = useState(false);
+  const title = exercise?.title || `Exercise ${exercise?.exercise_id || exercise?.id || ""}`;
+  const sizeClass = size === "sm" ? "h-11 w-11 rounded-xl" : "h-14 w-14 rounded-2xl";
+  if (!exercise?.image_url || failed) {
+    return (
+      <div className={`grid shrink-0 place-items-center border border-dashed border-slate-300 bg-slate-50 text-xs font-semibold text-slate-400 ${sizeClass}`}>
+        {String(title).trim().slice(0, 1).toUpperCase() || "?"}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={exercise.image_url}
+      alt=""
+      className={`shrink-0 border border-slate-200 bg-white object-contain ${sizeClass}`}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export default function WorkoutPage() {
@@ -224,18 +277,21 @@ export default function WorkoutPage() {
   async function handleGenerate() {
     setLoading("plan");
     setError("");
-    if (!form.goal_text.trim()) {
-      setError("Enter your workout goal before generating a workout plan.");
-      setLoading("");
-      return;
-    }
     if (!profileReady) {
       setError("Complete your profile before generating a workout plan.");
       setLoading("");
       return;
     }
     try {
-      const internalGoal = intent || (await analyzeIntent(intentPayload()));
+      let internalGoal = intent;
+      if (!hasFocusMuscles(internalGoal)) {
+        if (!form.goal_text.trim()) {
+          setError("Analyze a workout goal first or set focus muscles in Profile before generating a plan.");
+          setLoading("");
+          return;
+        }
+        internalGoal = await analyzeIntent(intentPayload());
+      }
       setIntent(internalGoal);
       const generatedPlan = await generateWorkoutPlan({
         internal_goal: internalGoal,
@@ -295,6 +351,7 @@ export default function WorkoutPage() {
 
   function buildReplacePayload(target, selectedExerciseId = null, reasonCode = "quick_change") {
     return {
+      source_request_id: plan?.request_id,
       current_plan: workoutPlan,
       target,
       replace_request: {
@@ -361,6 +418,7 @@ export default function WorkoutPage() {
     try {
       if (action === "add") {
         const updatedPlan = await addWorkoutExercise({
+          source_request_id: plan?.request_id,
           current_plan: workoutPlan,
           target,
           exercise_id: exercise.id,
@@ -425,8 +483,9 @@ export default function WorkoutPage() {
             <h2 className="text-lg font-semibold">Step 1 - Intent analysis</h2>
           </div>
           <div className="space-y-4">
-            <Field label="Goal text">
+            <Field label="Goal text for focus muscle analysis">
               <TextArea
+                placeholder="Example: giảm mỡ, vai rộng, rõ cơ bụng"
                 value={form.goal_text}
                 onChange={(event) => {
                   setForm({ ...form, goal_text: event.target.value });
@@ -483,6 +542,9 @@ export default function WorkoutPage() {
                 <Wand2 size={16} />
                 Generate plan
               </button>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Generate uses the current focus muscles. Goal text is only needed when you want AI to analyze a new focus.
+              </p>
             </div>
           </div>
         </section>
@@ -509,7 +571,7 @@ export default function WorkoutPage() {
           <div className="space-y-5">
             {(workoutPlan?.days || []).map((day, dayIndex) => (
               <div key={`${day.day}-${dayIndex}`} className="border-t border-slate-200 pt-4 first:border-t-0 first:pt-0">
-                <h3 className="font-semibold">{day.day} - {day.title}</h3>
+                <h3 className="font-semibold">{formatDayLabel(day.day, "long")} - {day.title}</h3>
                 <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {(day.exercises || []).map((exercise, exerciseIndex) => {
                     const target = {
@@ -524,12 +586,15 @@ export default function WorkoutPage() {
                         className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-medium">{exercise.title || `Exercise ${exercise.exercise_id}`}</p>
-                            <p className="mt-1 text-sm text-slate-600">
-                              {exercise.sets} sets - {exercise.reps} reps - {exercise.rest_sec}s rest
-                            </p>
-                            <p className="mt-2 text-xs text-slate-500">{formatList(exercise.muscle_groups)}</p>
+                          <div className="flex min-w-0 items-start gap-3">
+                            <ExerciseThumb exercise={exercise} />
+                            <div className="min-w-0">
+                              <p className="font-medium">{exercise.title || `Exercise ${exercise.exercise_id}`}</p>
+                              <p className="mt-1 text-sm text-slate-600">
+                                {exercise.sets} sets - {exercise.reps} reps - {exercise.rest_sec}s rest
+                              </p>
+                              <p className="mt-2 text-xs text-slate-500">{formatList(exercise.muscle_groups)}</p>
+                            </div>
                           </div>
                           <button
                             type="button"
@@ -547,7 +612,6 @@ export default function WorkoutPage() {
                 </div>
               </div>
             ))}
-            {(plan.warnings?.length || plan.issues?.length) ? <JsonBlock data={{ warnings: plan.warnings, issues: plan.issues }} /> : null}
           </div>
         )}
       </section>
@@ -612,7 +676,7 @@ export default function WorkoutPage() {
                   >
                     {(workoutPlan?.days || []).map((day, index) => (
                       <option key={`${day.day}-${index}`} value={index}>
-                        {day.day} - {day.title}
+                        {formatDayLabel(day.day, "long")} - {day.title}
                       </option>
                     ))}
                   </select>
@@ -637,7 +701,7 @@ export default function WorkoutPage() {
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <p className="text-sm font-semibold text-slate-900">
-                    {libraryAction === "add" ? "Adding to" : "Replacing in"} {selectedLibraryDay?.day || "day"}
+                    {libraryAction === "add" ? "Adding to" : "Replacing in"} {formatDayLabel(selectedLibraryDay?.day, "long")}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
                     {libraryAction === "replace"
@@ -678,19 +742,22 @@ export default function WorkoutPage() {
 
                         return (
                           <div key={exercise.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="font-semibold text-slate-900">{exercise.title}</p>
-                                {sameMuscle && (
-                                  <span className="inline-flex h-6 items-center gap-1 rounded-full bg-brand-50 px-2 text-xs font-semibold text-brand-700">
-                                    <Check size={12} />
-                                    Same muscle
-                                  </span>
-                                )}
+                            <div className="flex min-w-0 items-start gap-3">
+                              <ExerciseThumb exercise={exercise} size="sm" />
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="font-semibold text-slate-900">{exercise.title}</p>
+                                  {sameMuscle && (
+                                    <span className="inline-flex h-6 items-center gap-1 rounded-full bg-brand-50 px-2 text-xs font-semibold text-brand-700">
+                                      <Check size={12} />
+                                      Same muscle
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {formatList(exercise.muscle_groups)} - {exercise.equipment || "No equipment data"}
+                                </p>
                               </div>
-                              <p className="mt-1 text-xs text-slate-500">
-                                {formatList(exercise.muscle_groups)} - {exercise.equipment || "No equipment data"}
-                              </p>
                             </div>
                             <button
                               type="button"

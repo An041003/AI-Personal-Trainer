@@ -106,6 +106,34 @@ function getIngredientRows(recipe) {
     });
 }
 
+function getRecipeImageUrl(recipe) {
+  return recipe?.image_url || recipe?.image?.url || "";
+}
+
+function getRecipeImageMeta(recipe) {
+  return recipe?.image || {};
+}
+
+function getRecipeInstructions(recipe) {
+  return (recipe?.instructions || [])
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+}
+
+function getIngredientDetailRows(recipe) {
+  return (recipe?.ingredients || []).map((ingredient) => {
+    const nutrients = ingredient?.nutrients || {};
+    return {
+      name: formatIngredientName(ingredient.canonical_name || ingredient.ingredient_name || ingredient.name),
+      grams: toNumber(ingredient.grams),
+      kcal: readNumber(nutrients, ["kcal", "calories", "total_kcal"]),
+      protein: readNumber(nutrients, ["protein_g", "protein"]),
+      carbs: readNumber(nutrients, ["carbs_g", "carbs", "carbohydrate_g"]),
+      fat: readNumber(nutrients, ["fat_g", "fat"]),
+    };
+  });
+}
+
 function uniqueStrings(values) {
   const seen = new Set();
   const result = [];
@@ -331,6 +359,145 @@ function MetricCard({ icon, label, value, unit, accent = "green" }) {
   );
 }
 
+function RecipeThumb({ recipe, className = "" }) {
+  const [failed, setFailed] = useState(false);
+  const imageUrl = getRecipeImageUrl(recipe);
+  const classes = `h-16 w-20 shrink-0 rounded-xl border border-slate-200 bg-slate-50 object-cover ${className}`;
+
+  if (!imageUrl || failed) {
+    return <div className={`${classes} border-dashed`} aria-hidden="true" />;
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt=""
+      className={classes}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function RecipeDetailModal({ detail, onClose }) {
+  if (!detail) return null;
+
+  const { meal, recipe } = detail;
+  const recipeCalories = getRecipeCalories(recipe);
+  const imageUrl = getRecipeImageUrl(recipe);
+  const imageMeta = getRecipeImageMeta(recipe);
+  const ingredients = getIngredientDetailRows(recipe);
+  const instructions = getRecipeInstructions(recipe);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
+      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              {normalizeMealTitle(meal?.slot)}
+            </p>
+            <h2 className="mt-1 text-xl font-bold text-slate-950">
+              {recipe?.recipe_name || "Dish detail"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {formatNumber(recipeCalories, 0)} kcal
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center rounded border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+            onClick={onClose}
+            aria-label="Close dish detail"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="overflow-auto p-5">
+          {imageUrl ? (
+            <div>
+              <img
+                src={imageUrl}
+                alt=""
+                className="h-56 w-full rounded-2xl border border-slate-200 bg-slate-50 object-cover"
+              />
+              {imageMeta?.source_url ? (
+                <a
+                  href={imageMeta.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-block text-xs font-semibold text-slate-500 transition hover:text-emerald-700"
+                >
+                  {imageMeta.source || "Image source"}
+                  {imageMeta.license ? ` · ${imageMeta.license}` : ""}
+                </a>
+              ) : null}
+            </div>
+          ) : (
+            <div className="h-40 rounded-2xl border border-dashed border-slate-300 bg-slate-50" aria-hidden="true" />
+          )}
+
+          <div className="mt-6">
+            <h3 className="text-sm font-bold text-slate-950">Ingredients</h3>
+            <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-200">
+              <table className="min-w-full divide-y divide-slate-100 text-sm">
+                <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">Ingredient</th>
+                    <th className="px-4 py-3 text-right">Gram</th>
+                    <th className="px-4 py-3 text-right">Kcal</th>
+                    <th className="px-4 py-3 text-right">Protein</th>
+                    <th className="px-4 py-3 text-right">Carbs</th>
+                    <th className="px-4 py-3 text-right">Fat</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {ingredients.length ? (
+                    ingredients.map((ingredient, index) => (
+                      <tr key={`${ingredient.name}-${index}`}>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{ingredient.name}</td>
+                        <td className="px-4 py-3 text-right text-slate-600">{formatNumber(ingredient.grams, 0)}g</td>
+                        <td className="px-4 py-3 text-right text-slate-600">{formatNumber(ingredient.kcal, 0)}</td>
+                        <td className="px-4 py-3 text-right text-slate-600">{formatNumber(ingredient.protein, 1)}g</td>
+                        <td className="px-4 py-3 text-right text-slate-600">{formatNumber(ingredient.carbs, 1)}g</td>
+                        <td className="px-4 py-3 text-right text-slate-600">{formatNumber(ingredient.fat, 1)}g</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="px-4 py-6 text-center text-slate-500" colSpan={6}>
+                        No ingredient details found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-sm font-bold text-slate-950">How to cook</h3>
+            {instructions.length ? (
+              <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                {instructions.map((instruction, index) => (
+                  <li key={`${instruction}-${index}`} className="rounded-2xl bg-slate-50 px-4 py-3">
+                    {index + 1}. {instruction}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                No cooking instructions found.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function NutritionPage() {
   const [bundle, setBundle] = useState(null);
   const [metrics, setMetrics] = useState(null);
@@ -339,9 +506,10 @@ export default function NutritionPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState("");
   const [replacementModal, setReplacementModal] = useState(null);
-  const [replacementReason, setReplacementReason] = useState("disliked_dish");
+  const [replacementReason, setReplacementReason] = useState("simple_dislike");
   const [replacementDetail, setReplacementDetail] = useState("");
   const [replacementFreeText, setReplacementFreeText] = useState("");
+  const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
   const [selectedAvoidIngredients, setSelectedAvoidIngredients] = useState([]);
   const [sessionMemory, setSessionMemory] = useState({
     avoid_recipe_names: [],
@@ -443,8 +611,8 @@ export default function NutritionPage() {
   }
 
   function openPlanReplacementModal() {
-    setReplacementReason("disliked_dish");
-    setReplacementDetail(oldRecipeNames[0] || "");
+    setReplacementReason("simple_dislike");
+    setReplacementDetail("");
     setReplacementFreeText("");
     setSelectedAvoidIngredients([]);
     setReplacementModal({ scope: "plan" });
@@ -471,6 +639,8 @@ export default function NutritionPage() {
       ? replacementModal?.ingredientOptions || []
       : nextReason === "disliked_ingredient"
       ? ingredientOptions
+      : nextReason === "simple_dislike"
+      ? []
       : oldRecipeNames.map((name) => ({ value: name, label: name }));
 
     setReplacementReason(nextReason);
@@ -495,6 +665,7 @@ export default function NutritionPage() {
 
     return {
       scope,
+      source_request_id: plan?.request_id,
       current_plan: plan?.meal_plan,
       derived_targets: activeRulebase.derived_targets || plan?.derived_targets || {},
       constraints: activeRulebase.constraints || plan?.constraint_report || {},
@@ -556,6 +727,20 @@ export default function NutritionPage() {
   }
 
   async function handlePlanReplacementSubmit() {
+    if (replacementReason === "simple_dislike") {
+      await handleReplace("plan", {}, {
+        reason_type: "simple_dislike",
+        reason_detail: "User simply does not like this menu.",
+        old_recipe_names: [],
+        old_meal_titles: [],
+        old_ingredient_names: [],
+        ignore_short_term_memory: true,
+        persist_short_term_memory: false,
+        skip_old_plan_as_avoid: true,
+      });
+      return;
+    }
+
     const detailOptions =
       replacementReason === "disliked_ingredient"
         ? ingredientOptions
@@ -714,6 +899,8 @@ export default function NutritionPage() {
   const modalDetailOptions =
     replacementReason === "disliked_ingredient"
       ? ingredientOptions
+      : replacementReason === "simple_dislike"
+      ? []
       : oldRecipeNames.map((name) => ({ value: name, label: name }));
   const isBusy = Boolean(loading);
 
@@ -815,7 +1002,7 @@ export default function NutritionPage() {
       </section>
 
       {plan && (
-        <section className="grid gap-4 xl:grid-cols-4 lg:grid-cols-2">
+        <section className="grid gap-4 lg:grid-cols-2">
           {meals.map((meal, mealIndex) => {
             const mealTotalKcal = getMealTotalKcal(meal);
             const mealTarget = {
@@ -869,10 +1056,10 @@ export default function NutritionPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 p-5 space-y-4">
+                <div className="flex-1 p-4">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200">
                   {(meal.recipes || []).map((recipe, recipeIndex) => {
                     const recipeCalories = getRecipeCalories(recipe);
-                    const ingredientRows = getIngredientRows(recipe);
                     const recipeTarget = {
                       day_index: 0,
                       meal_index: mealIndex,
@@ -884,44 +1071,48 @@ export default function NutritionPage() {
 
                     return (
                       <div
-                        key={`${meal.slot}-${recipe.recipe_name}`}
-                        className="p-4 rounded-2xl bg-slate-50"
+                        key={`${meal.slot}-${recipe.recipe_name}-${recipeIndex}`}
+                        role="button"
+                        tabIndex={0}
+                        className="group flex cursor-pointer items-center justify-between gap-3 border-b border-slate-100 bg-white p-3 transition last:border-b-0 hover:bg-emerald-50/40 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500"
+                        onClick={() => setSelectedRecipeDetail({ meal, recipe })}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedRecipeDetail({ meal, recipe });
+                          }
+                        }}
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <RecipeThumb recipe={recipe} />
                           <div className="min-w-0">
-                            <p className="font-semibold text-slate-900">
+                            <p className="truncate font-semibold text-slate-900 transition group-hover:text-emerald-800">
                               {recipe.recipe_name}
                             </p>
-
-                            {ingredientRows.length ? (
-                              <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-500">
-                                {ingredientRows.map((ingredient, index) => (
-                                  <li key={`${recipe.recipe_name}-ingredient-${index}`}>{ingredient}</li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </div>
-
-                          <div className="flex shrink-0 flex-col items-end gap-2">
-                            <p className="text-sm font-bold text-slate-900">
+                            <p className="mt-1 text-sm text-slate-500">
                               {recipeCalories !== null
                                 ? `${formatNumber(recipeCalories, 0)} kcal`
                                 : "-"}
                             </p>
-                            <button
-                              type="button"
-                              className="inline-flex h-8 items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                              onClick={() => openRecipeReplacementModal(recipeTarget, meal, recipe)}
-                              disabled={isBusy}
-                            >
-                              <RefreshCw size={13} className={recipeLoading ? "animate-spin" : ""} />
-                              {recipeLoading ? "Changing..." : "Change dish"}
-                            </button>
                           </div>
                         </div>
+
+                        <button
+                          type="button"
+                          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openRecipeReplacementModal(recipeTarget, meal, recipe);
+                          }}
+                          disabled={isBusy}
+                        >
+                          <RefreshCw size={13} className={recipeLoading ? "animate-spin" : ""} />
+                          {recipeLoading ? "Changing..." : "Change dish"}
+                        </button>
                       </div>
                     );
                   })}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between p-5 mt-auto border-t border-slate-100">
@@ -942,6 +1133,11 @@ export default function NutritionPage() {
           Stay consistent, stay hydrated, and listen to your body. Small choices, big results.
         </div>
       )}
+
+      <RecipeDetailModal
+        detail={selectedRecipeDetail}
+        onClose={() => setSelectedRecipeDetail(null)}
+      />
 
       {replacementModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
@@ -1064,36 +1260,43 @@ export default function NutritionPage() {
                       value={replacementReason}
                       onChange={handleReplacementReasonChange}
                     >
+                      <option value="simple_dislike">I simply do not like this menu</option>
                       <option value="disliked_dish">I do not like a dish in this menu</option>
                       <option value="disliked_ingredient">I do not like an ingredient in this menu</option>
                     </select>
                   </label>
 
-                  <label className="block">
-                    <span className="mb-1 block text-sm font-semibold text-slate-700">
-                      {replacementReason === "disliked_ingredient" ? "Ingredient" : "Dish"}
-                    </span>
-                    {modalDetailOptions.length ? (
-                      <select
-                        className="input"
-                        value={replacementDetail || modalDetailOptions[0]?.value || ""}
-                        onChange={(event) => setReplacementDetail(event.target.value)}
-                      >
-                        {modalDetailOptions.map((item) => (
-                          <option key={item.value} value={item.value}>
-                            {item.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="input"
-                        value={replacementDetail}
-                        onChange={(event) => setReplacementDetail(event.target.value)}
-                        placeholder="Type item name"
-                      />
-                    )}
-                  </label>
+                  {replacementReason === "simple_dislike" ? (
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-xs leading-5 text-slate-600">
+                      This will refresh the menu without saving any dislike or avoidance behavior.
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-semibold text-slate-700">
+                        {replacementReason === "disliked_ingredient" ? "Ingredient" : "Dish"}
+                      </span>
+                      {modalDetailOptions.length ? (
+                        <select
+                          className="input"
+                          value={replacementDetail || modalDetailOptions[0]?.value || ""}
+                          onChange={(event) => setReplacementDetail(event.target.value)}
+                        >
+                          {modalDetailOptions.map((item) => (
+                            <option key={item.value} value={item.value}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          className="input"
+                          value={replacementDetail}
+                          onChange={(event) => setReplacementDetail(event.target.value)}
+                          placeholder="Type item name"
+                        />
+                      )}
+                    </label>
+                  )}
                 </>
               )}
             </div>
@@ -1134,7 +1337,10 @@ export default function NutritionPage() {
                   type="button"
                   className="btn-primary justify-center rounded-xl"
                   onClick={handlePlanReplacementSubmit}
-                  disabled={loading === "replace-plan" || (!replacementDetail && !modalDetailOptions.length)}
+                  disabled={
+                    loading === "replace-plan" ||
+                    (replacementReason !== "simple_dislike" && !replacementDetail && !modalDetailOptions.length)
+                  }
                 >
                   {loading === "replace-plan" ? (
                     <>

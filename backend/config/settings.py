@@ -11,6 +11,8 @@ env = environ.Env(
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5173", "http://127.0.0.1:5173"]),
     DB_PORT=(int, 5432),
     OPENAI_EMBED_DIM=(int, 1536),
+    AIPT_RATE_LIMIT_ENABLED=(bool, True),
+    AIPT_RLS_ENABLED=(bool, True),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
@@ -42,8 +44,10 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "apps.common.middleware.RateLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.common.middleware.CurrentUserRLSMiddleware",
     "apps.common.middleware.ApiRequestLogMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -119,3 +123,13 @@ OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 OPENAI_CHAT_MODEL = env("OPENAI_CHAT_MODEL", default="gpt-4.1-mini")
 OPENAI_EMBED_MODEL = env("OPENAI_EMBED_MODEL", default="text-embedding-3-small")
 OPENAI_EMBED_DIM = env("OPENAI_EMBED_DIM")
+WEATHERAPI_KEY = env("WEATHERAPI_KEY", default="")
+
+AIPT_RATE_LIMIT_ENABLED = env("AIPT_RATE_LIMIT_ENABLED")
+AIPT_RATE_LIMITS = {
+    "default": env("AIPT_RATE_LIMIT_DEFAULT", default="240/60"),
+    "read": env("AIPT_RATE_LIMIT_READ", default="600/60"),
+    "auth": env("AIPT_RATE_LIMIT_AUTH", default="10/60"),
+    "ai": env("AIPT_RATE_LIMIT_AI", default="20/300"),
+}
+AIPT_RLS_ENABLED = env("AIPT_RLS_ENABLED")

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -27,3 +28,29 @@ class NutritionAtom(models.Model):
     def __str__(self):
         return self.display_name_vi or self.canonical_name
 
+
+class NutritionCompletion(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="nutrition_completions")
+    nutrition_date = models.DateField(db_index=True)
+    plan = models.ForeignKey(
+        "common.Plan",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nutrition_completions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "nutrition_completion"
+        ordering = ["-nutrition_date"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "nutrition_date"], name="uniq_nutrition_completion_user_date"),
+        ]
+        indexes = [
+            models.Index(fields=["user", "nutrition_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.nutrition_date}"

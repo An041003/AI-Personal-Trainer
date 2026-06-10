@@ -108,6 +108,13 @@ def generate_workout_plan(user, payload):
 def _generate_workout_plan(user, payload):
     request_id = uuid.uuid4()
     internal_goal = build_generation_goal(payload, experience_level=_profile_experience_level(user))
+    if not internal_goal.get("focus_muscles"):
+        try:
+            internal_goal["focus_muscles"] = list(user.profile.focus_muscles or [])
+        except (AttributeError, UserProfile.DoesNotExist):
+            internal_goal["focus_muscles"] = []
+    if not internal_goal.get("focus_muscles"):
+        raise ValueError("focus_muscles is required. Analyze a workout goal or set focus muscles before generating a plan.")
     constraints = payload.get("constraints") or {}
     max_exercises = int(constraints.get("max_exercises_per_day") or 6)
     max_repairs = int(constraints.get("max_repair_iterations") or 2)

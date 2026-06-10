@@ -1,301 +1,285 @@
 import {
+  ArrowRight,
   BarChart3,
   CalendarDays,
-  Check,
-  Mail,
-  Play,
-  Plus,
+  CheckCircle2,
+  Dumbbell,
   Ruler,
+  ShieldCheck,
+  Sparkles,
   Utensils,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+const features = [
+  {
+    title: "Profile as the source of truth",
+    desc: "Height, weight, body measurements, goals, food preferences, and health limits are reused across every planning flow.",
+    icon: Ruler,
+  },
+  {
+    title: "Workout intent comes first",
+    desc: "AI turns your goal into focus muscles and weekly training intent before any workout plan is generated.",
+    icon: Dumbbell,
+  },
+  {
+    title: "Nutrition uses a rulebase",
+    desc: "Calories, macros, and medical constraints are calculated with clear logic before the meal draft is created.",
+    icon: Utensils,
+  },
+  {
+    title: "Plans stay available",
+    desc: "Return to your latest workout and meal plans without regenerating everything from scratch.",
+    icon: CalendarDays,
+  },
+];
+
+const steps = [
+  "Complete your profile and body metrics.",
+  "Review BMI, BMR, TDEE, and safety-aware advice.",
+  "Generate workout or nutrition plans from saved profile data.",
+  "Track your latest plan and adjust it when your schedule changes.",
+];
+
+const faqs = [
+  {
+    q: "Does AIPT replace a doctor or medical professional?",
+    a: "No. AIPT is a planning assistant. If you have a medical condition or contraindication, you should consult a qualified professional.",
+  },
+  {
+    q: "Do I need to enter body metrics on every page?",
+    a: "No. Your profile is the shared data source for workout, nutrition, and advice.",
+  },
+  {
+    q: "Does workout planning generate directly from a goal prompt?",
+    a: "No. The app analyzes intent first to identify focus muscles, then generates a plan from that structured intent.",
+  },
+  {
+    q: "Does the meal plan invent calories?",
+    a: "No. The backend resolves ingredients to NutritionAtom records and calculates totals from seeded nutrition data.",
+  },
+];
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <div className="min-h-[100dvh] bg-[#f3f7ef] text-slate-950">
+      <header className="sticky top-0 z-50 border-b border-black/10 bg-[#f3f7ef]/88 backdrop-blur-xl">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-3" to="/">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white shadow-sm">
-              <span className="text-lg font-extrabold">A</span>
-            </div>
-            <div className="leading-tight">
-              <div className="text-base font-semibold">AIPT</div>
-              <div className="text-xs text-slate-500">AI Personal Trainer</div>
-            </div>
+            <img
+              src="/android-chrome-192x192.png"
+              alt=""
+              className="h-11 w-11 rounded-2xl bg-white object-cover shadow-lg shadow-brand-900/15 ring-1 ring-black/10"
+            />
+            <span className="leading-tight">
+              <span className="block text-base font-semibold tracking-tight">AIPT</span>
+              <span className="block text-xs font-medium text-slate-500">AI Personal Trainer</span>
+            </span>
           </Link>
 
-          <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
-            <a href="#features" className="hover:text-slate-900">
-              Tính năng
+          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-600 md:flex">
+            <a href="#features" className="transition hover:text-brand-800">
+              Features
             </a>
-            <a href="#how" className="hover:text-slate-900">
-              Cách hoạt động
+            <a href="#how" className="transition hover:text-brand-800">
+              How it works
             </a>
-            <a href="#demo" className="hover:text-slate-900">
-              Demo
+            <a href="#preview" className="transition hover:text-brand-800">
+              Preview
             </a>
-            <a href="#faq" className="hover:text-slate-900">
+            <a href="#faq" className="transition hover:text-brand-800">
               FAQ
             </a>
           </nav>
 
           <div className="flex items-center gap-2">
             <Link
-              to="/register"
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.99]"
+              to="/login"
+              className="hidden rounded-2xl border border-black/10 bg-white/75 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-white sm:inline-flex"
             >
-              Đăng ký
+              Sign in
             </Link>
             <Link
-              to="/login"
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.99]"
+              to="/register"
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-900/15 transition hover:-translate-y-0.5 hover:bg-brand-800 active:translate-y-0"
             >
-              Đăng nhập
+              Sign up
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
       </header>
 
-      <section className="relative min-h-[calc(100vh-65px)] overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=2000&q=80)",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute inset-0 bg-gradient-to-b from-emerald-700/75 via-emerald-700/55 to-emerald-900/75"
-          aria-hidden="true"
-        />
-
-        <div className="relative mx-auto flex min-h-[calc(100vh-65px)] max-w-6xl items-center px-4 py-20 md:py-24">
-          <div className="mx-auto max-w-3xl text-center text-white">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide ring-1 ring-white/20">
-              <span className="h-2 w-2 rounded-full bg-lime-300" />
-              Lịch tập và thực đơn cá nhân hóa theo chỉ số cơ thể
-            </div>
-
-            <h1 className="mt-6 text-4xl font-extrabold leading-tight md:text-6xl">
-              AIPT
-              <span className="block text-3xl md:text-5xl">AI Personal Trainer</span>
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-2xl text-base font-semibold text-white md:text-xl">
-              Biến mục tiêu thành hiện thực với tập luyện và dinh dưỡng tối ưu bằng AI.
-            </p>
-
-            <p className="mx-auto mt-4 max-w-2xl text-base text-white/85 md:text-lg">
-              Nhập chỉ số cơ thể, mục tiêu và lịch rảnh. AIPT tạo kế hoạch tập và thực đơn theo ngày,
-              bám sát calories và macro, dễ theo dõi tiến độ.
-            </p>
-
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                to="/register"
-                className="w-full rounded-2xl bg-orange-500 px-6 py-3 text-center text-sm font-bold text-white shadow-md transition hover:bg-orange-600 active:scale-[0.99] sm:w-auto"
-              >
-                Trải nghiệm ngay
-              </Link>
-              <a
-                href="#demo"
-                className="w-full rounded-2xl bg-white px-6 py-3 text-center text-sm font-bold text-slate-900 shadow-md transition hover:bg-slate-100 active:scale-[0.99] sm:w-auto"
-              >
-                Xem demo
-              </a>
-            </div>
-
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 text-xs text-white/80 sm:flex-row">
-              <div className="rounded-full bg-white/10 px-4 py-2 ring-1 ring-white/15">Tạo plan trong 2 phút</div>
-              <div className="rounded-full bg-white/10 px-4 py-2 ring-1 ring-white/15">Theo dõi tiến độ hằng ngày</div>
-              <div className="rounded-full bg-white/10 px-4 py-2 ring-1 ring-white/15">Phù hợp lịch bận rộn</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="features" className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <div className="text-center">
-          <h2 className="text-2xl font-extrabold md:text-3xl">Tính năng nổi bật</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 md:text-base">
-            Tập trung vào thứ bạn cần nhất: rõ mục tiêu, dễ thực hiện, theo dõi được kết quả.
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <FeatureCard
-            title="Theo dõi tiến độ"
-            desc="Ghi nhận buổi tập, calories, nước và thói quen hằng ngày."
-            icon={<BarChart3 className="h-7 w-7" />}
+      <main>
+        <section className="relative overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage:
+                "url(https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=2200&q=85)",
+            }}
+            aria-hidden="true"
           />
-          <FeatureCard
-            title="AI tư vấn dinh dưỡng"
-            desc="Gợi ý thực đơn theo mục tiêu, sở thích và món không thích."
-            icon={<Utensils className="h-7 w-7" />}
-          />
-          <FeatureCard
-            title="Lịch tập cá nhân"
-            desc="Tạo lịch theo số buổi, thời gian rảnh và level hiện tại."
-            icon={<CalendarDays className="h-7 w-7" />}
-          />
-          <FeatureCard
-            title="Tính chỉ số cơ thể"
-            desc="Tính BMI, BMR, TDEE và mục tiêu macro rõ ràng."
-            icon={<Ruler className="h-7 w-7" />}
-          />
-        </div>
-      </section>
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-950/95 via-brand-900/72 to-brand-900/18" aria-hidden="true" />
 
-      <section id="how" className="bg-slate-50">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="text-center">
-            <h2 className="text-2xl font-extrabold md:text-3xl">Cách hoạt động</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 md:text-base">
-              Quy trình đơn giản, tập trung vào dữ liệu cá nhân và kế hoạch dễ theo.
-            </p>
-          </div>
+          <div className="relative mx-auto flex min-h-[76dvh] max-w-7xl items-center px-4 py-16 sm:px-6 lg:px-8">
+            <div className="max-w-3xl text-white">
+              <p className="inline-flex rounded-full border border-white/18 bg-white/10 px-4 py-2 text-xs font-semibold text-lime-100 backdrop-blur">
+                Personalized workout and nutrition from your profile
+              </p>
+              <h1 className="mt-6 text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+                AI Personal Trainer
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-white/82">
+                Build workout and meal plans from your body metrics, goals, preferences, and health limits.
+              </p>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-4">
-            <StepCard num="01" title="Nhập chỉ số" desc="Chiều cao, cân nặng, mục tiêu, lịch rảnh và sở thích." />
-            <StepCard num="02" title="Tính mục tiêu" desc="Tính calories và macro theo tình trạng và mức hoạt động." />
-            <StepCard num="03" title="Sinh kế hoạch" desc="Tạo lịch tập và thực đơn theo ngày, có phân bổ hợp lý." />
-            <StepCard num="04" title="Theo dõi và tối ưu" desc="Cập nhật tiến độ, chỉnh plan theo mức độ bận và kết quả." />
-          </div>
-        </div>
-      </section>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to="/register"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-sm font-bold text-brand-950 shadow-xl transition hover:-translate-y-0.5 hover:bg-lime-50 active:translate-y-0"
+                >
+                  Start with your profile
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <a
+                  href="#preview"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/24 bg-white/10 px-5 text-sm font-bold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/16 active:translate-y-0"
+                >
+                  View preview
+                </a>
+              </div>
 
-      <section id="demo" className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <div className="text-center">
-          <h2 className="text-2xl font-extrabold md:text-3xl">Xem hoạt động như thế nào</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 md:text-base">
-            Khu vực này có thể thay bằng video demo khi bạn có bản deploy ổn định.
-          </p>
-        </div>
-
-        <div className="mt-10 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="aspect-video w-full bg-slate-900/5">
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="text-center">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-600 text-white shadow-sm">
-                  <Play className="h-7 w-7 fill-current" />
-                </div>
-                <p className="mt-3 text-sm font-semibold text-slate-800">Khu vực video demo</p>
-                <p className="mt-1 text-xs text-slate-500">Thay bằng iframe YouTube hoặc video tự host</p>
+              <div className="mt-8 grid max-w-2xl gap-3 text-sm text-white/78 sm:grid-cols-3">
+                <HeroFact icon={ShieldCheck} text="Not medical advice" />
+                <HeroFact icon={BarChart3} text="Metrics from profile" />
+                <HeroFact icon={Sparkles} text="AI runs on backend" />
               </div>
             </div>
           </div>
+        </section>
 
-          <div className="flex flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
-            <div className="text-sm">
-              <div className="font-semibold">Bắt đầu với AIPT</div>
-              <div className="text-slate-600">Tạo tài khoản để nhập chỉ số và tạo plan đầu tiên</div>
-            </div>
-            <Link
-              to="/register"
-              className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.99]"
-            >
-              Đăng ký ngay
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section id="faq" className="bg-slate-50">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="text-center">
-            <h2 className="text-2xl font-extrabold md:text-3xl">FAQ</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 md:text-base">
-              Một vài câu hỏi phổ biến trước khi bắt đầu.
-            </p>
-          </div>
-
-          <div className="mx-auto mt-10 max-w-3xl space-y-3">
-            <FaqItem
-              q="AIPT có thay thế bác sĩ hoặc chuyên gia không?"
-              a="Không. AIPT là công cụ hỗ trợ lập kế hoạch. Nếu bạn có bệnh lý hoặc chống chỉ định, hãy tham khảo chuyên gia y tế."
-            />
-            <FaqItem
-              q="Tôi bận, ít thời gian thì có dùng được không?"
-              a="Có. Bạn chỉ cần chọn số buổi và khung giờ rảnh, hệ thống sẽ tạo lịch phù hợp."
-            />
-            <FaqItem
-              q="Có tùy chỉnh món thích và món không thích không?"
-              a="Có. Bạn có thể thêm sở thích ăn uống để thực đơn hợp hơn và dễ theo hơn."
-            />
-            <FaqItem
-              q="Tôi có thể xem lại lịch sử không?"
-              a="Có. Bạn có thể theo dõi tiến độ theo ngày và xem lại kế hoạch đã tạo."
-            />
-          </div>
-        </div>
-      </section>
-
-      <footer className="bg-slate-900 text-slate-200">
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <div className="grid gap-10 md:grid-cols-3">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white">
-                  <span className="text-lg font-extrabold">A</span>
+        <section id="features" className="mx-auto grid max-w-7xl gap-5 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+          {features.map((feature) => {
+            const Icon = feature.icon;
+            return (
+              <article key={feature.title} className="surface-panel p-5 transition hover:-translate-y-1 hover:shadow-[0_26px_80px_rgba(35,48,30,0.14)]">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-800 ring-1 ring-brand-100">
+                  <Icon className="h-6 w-6" />
                 </div>
+                <h2 className="mt-5 text-lg font-semibold tracking-tight">{feature.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{feature.desc}</p>
+              </article>
+            );
+          })}
+        </section>
+
+        <section id="how" className="border-y border-black/10 bg-white/55">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+            <div>
+              <p className="text-sm font-semibold text-brand-800">Planning flow</p>
+              <h2 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">Start from real profile data, not a blank prompt.</h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
+                AIPT keeps profile data at the center so workout, nutrition, and advice stay aligned.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              {steps.map((step, index) => (
+                <div key={step} className="flex items-start gap-4 rounded-[1.25rem] border border-black/10 bg-white/80 p-4">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-brand-900 text-sm font-bold text-white">
+                    {index + 1}
+                  </span>
+                  <p className="pt-2 text-sm font-semibold leading-6 text-slate-800">{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="preview" className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:px-8">
+          <div>
+            <p className="text-sm font-semibold text-brand-800">Preview</p>
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">One app for training and meal planning.</h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
+              The product experience is built for repeat actions: review metrics, generate plans, edit plans, and return to the latest version.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <span className="muted-chip">
+                <CheckCircle2 className="h-4 w-4 text-brand-700" />
+                Token auth REST API
+              </span>
+              <span className="muted-chip">
+                <CheckCircle2 className="h-4 w-4 text-brand-700" />
+                PostgreSQL and pgvector
+              </span>
+              <span className="muted-chip">
+                <CheckCircle2 className="h-4 w-4 text-brand-700" />
+                OpenAI through backend
+              </span>
+            </div>
+          </div>
+
+          <div className="surface-panel overflow-hidden p-4">
+            <div className="rounded-[1.35rem] bg-brand-950 p-5 text-white">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-base font-semibold">AIPT</div>
-                  <div className="text-xs text-slate-400">AI Personal Trainer</div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-lime-100/65">Today</p>
+                  <h3 className="mt-2 text-2xl font-semibold tracking-tight">Foundation is ready</h3>
                 </div>
+                <BarChart3 className="h-8 w-8 text-lime-100" />
               </div>
-              <p className="mt-4 max-w-sm text-sm text-slate-400">
-                Lịch tập và thực đơn cá nhân hóa, hỗ trợ bạn theo dõi mục tiêu và duy trì thói quen.
-              </p>
-
-              <div className="mt-5 flex items-center gap-3">
-                <SocialIcon />
-                <SocialIcon />
-                <SocialIcon />
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <Metric label="BMI" value="22.8" />
+                <Metric label="TDEE" value="2400" />
+                <Metric label="Protein" value="145g" />
               </div>
             </div>
 
-            <div className="grid gap-2 text-sm">
-              <div className="text-base font-semibold text-white">Liên kết</div>
-              <a href="#features" className="text-slate-400 hover:text-white">
-                Tính năng
-              </a>
-              <a href="#how" className="text-slate-400 hover:text-white">
-                Cách hoạt động
-              </a>
-              <a href="#demo" className="text-slate-400 hover:text-white">
-                Demo
-              </a>
-              <Link to="/login" className="text-slate-400 hover:text-white">
-                Đăng nhập
-              </Link>
-              <Link to="/register" className="text-slate-400 hover:text-white">
-                Đăng ký
-              </Link>
-            </div>
-
-            <div>
-              <div className="text-base font-semibold text-white">Nhận cập nhật</div>
-              <p className="mt-2 text-sm text-slate-400">
-                Đăng ký email để nhận thông tin về bản cập nhật tính năng.
-              </p>
-              <form className="mt-4 flex gap-2" onSubmit={(event) => event.preventDefault()}>
-                <input
-                  type="email"
-                  placeholder="Email của bạn"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-500/70"
-                />
-                <button className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 active:scale-[0.99]">
-                  <Mail className="h-4 w-4" />
-                  Gửi
-                </button>
-              </form>
+            <div className="grid gap-3 pt-4 md:grid-cols-2">
+              <PreviewCard title="Workout intent" text="shoulders, core, back" icon={Dumbbell} />
+              <PreviewCard title="Meal target" text="4 meals, balanced macros" icon={Utensils} />
             </div>
           </div>
+        </section>
 
-          <div className="mt-10 border-t border-white/10 pt-6 text-xs text-slate-500">
-            © {new Date().getFullYear()} AIPT. All rights reserved.
+        <section id="faq" className="bg-white/55">
+          <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <p className="text-sm font-semibold text-brand-800">FAQ</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">What to know before using AIPT.</h2>
+            </div>
+            <div className="mt-9 space-y-3">
+              {faqs.map((item) => (
+                <details key={item.q} className="group rounded-[1.25rem] border border-black/10 bg-white/80 p-5 shadow-sm">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left">
+                    <span className="text-sm font-semibold text-slate-950">{item.q}</span>
+                    <span className="text-brand-800 transition group-open:rotate-45">+</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-black/10 bg-brand-950 text-white">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 text-sm sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <div>
+            <p className="font-semibold">AIPT</p>
+            <p className="mt-1 text-white/58">AI Personal Trainer for workout and nutrition planning.</p>
+          </div>
+          <div className="flex flex-wrap gap-4 text-white/70">
+            <a href="#features" className="hover:text-white">
+              Features
+            </a>
+            <a href="#how" className="hover:text-white">
+              How it works
+            </a>
+            <Link to="/login" className="hover:text-white">
+              Sign in
+            </Link>
           </div>
         </div>
       </footer>
@@ -303,50 +287,36 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ title, desc, icon }) {
+function HeroFact({ icon: Icon, text }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
-        {icon}
+    <div className="flex items-center gap-2 rounded-2xl border border-white/14 bg-white/9 px-3 py-2 backdrop-blur">
+      <Icon className="h-4 w-4 shrink-0 text-lime-100" />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function Metric({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-white/9 p-4 ring-1 ring-white/12">
+      <p className="text-xs font-semibold text-lime-100/70">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
+    </div>
+  );
+}
+
+function PreviewCard({ title, text, icon: Icon }) {
+  return (
+    <div className="rounded-[1.25rem] border border-black/10 bg-white/80 p-4">
+      <div className="flex items-start gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-brand-50 text-brand-800">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="font-semibold text-slate-950">{title}</p>
+          <p className="mt-1 text-sm text-slate-600">{text}</p>
+        </div>
       </div>
-      <div className="mt-4 text-base font-bold">{title}</div>
-      <div className="mt-2 text-sm text-slate-600">{desc}</div>
     </div>
-  );
-}
-
-function StepCard({ num, title, desc }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="text-xs font-extrabold tracking-widest text-emerald-700">{num}</div>
-      <div className="mt-2 text-base font-bold">{title}</div>
-      <div className="mt-2 text-sm text-slate-600">{desc}</div>
-    </div>
-  );
-}
-
-function FaqItem({ q, a }) {
-  return (
-    <details className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-slate-900">{q}</span>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-50 text-slate-600 ring-1 ring-slate-200 transition group-open:rotate-45">
-          <Plus className="h-5 w-5" />
-        </span>
-      </summary>
-      <div className="mt-3 text-sm text-slate-600">{a}</div>
-    </details>
-  );
-}
-
-function SocialIcon() {
-  return (
-    <button
-      type="button"
-      className="grid h-10 w-10 place-items-center rounded-xl bg-white/5 text-slate-300 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
-      aria-label="social"
-    >
-      <Check className="h-5 w-5" />
-    </button>
   );
 }

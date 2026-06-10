@@ -126,6 +126,38 @@ def generate_json(system_prompt, user_prompt, *, model=None, max_retries=1):
     raise last_error
 
 
+def generate_json_with_image(system_prompt, user_prompt, image_data_url, *, model=None, max_retries=1):
+    client = get_openai_client()
+    selected_model = model or settings.OPENAI_CHAT_MODEL
+    last_error = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            response = client.chat.completions.create(
+                model=selected_model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_prompt},
+                            {"type": "image_url", "image_url": {"url": image_data_url}},
+                        ],
+                    },
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.2,
+            )
+            _record_token_usage(response, model=selected_model, operation="chat.completions.vision")
+            return _loads_json(response.choices[0].message.content)
+        except Exception as exc:
+            last_error = exc
+            if attempt < max_retries:
+                time.sleep(0.8 * (attempt + 1))
+
+    raise last_error
+
+
 def embed_texts(texts, *, model=None, max_retries=1):
     if not texts:
         return []

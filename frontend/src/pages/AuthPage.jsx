@@ -86,12 +86,12 @@ export default function AuthPage({ onAuth }) {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-8">
-      <h2 className="mb-6 text-center text-3xl font-extrabold text-slate-800">
+    <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f3f7ef] px-4 py-8">
+      <h2 className="mb-6 text-center text-3xl font-extrabold text-brand-950">
         Plan smarter! Train better!
       </h2>
 
-      <div className="relative min-h-[560px] w-full max-w-[880px] overflow-hidden rounded-3xl bg-white shadow-[0_14px_28px_rgba(0,0,0,0.15),0_10px_10px_rgba(0,0,0,0.12)] md:h-[520px] md:min-h-0">
+      <div className="relative min-h-[560px] w-full max-w-[880px] overflow-hidden rounded-3xl border border-black/10 bg-white/85 shadow-[0_24px_80px_rgba(35,48,30,0.14)] backdrop-blur-xl md:h-[520px] md:min-h-0">
         <div
           className={[
             "absolute left-0 top-0 h-full w-full transition-all duration-700 ease-in-out md:w-1/2",
@@ -143,7 +143,7 @@ export default function AuthPage({ onAuth }) {
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-2 rounded-full border border-emerald-600 bg-emerald-600 px-12 py-3 text-xs font-extrabold uppercase tracking-widest text-white transition hover:bg-emerald-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 rounded-full border border-brand-800 bg-brand-800 px-12 py-3 text-xs font-extrabold uppercase tracking-widest text-white shadow-lg shadow-brand-900/15 transition hover:bg-brand-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loadingMode === "signup" ? "PLEASE WAIT..." : "SIGN UP"}
             </button>
@@ -151,7 +151,7 @@ export default function AuthPage({ onAuth }) {
             <button
               type="button"
               onClick={goSignIn}
-              className="mt-1 text-sm font-semibold text-emerald-700 hover:text-emerald-900 md:hidden"
+              className="mt-1 text-sm font-semibold text-brand-700 hover:text-brand-900 md:hidden"
             >
               Already have an account?
             </button>
@@ -209,7 +209,7 @@ export default function AuthPage({ onAuth }) {
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-1 rounded-full border border-emerald-600 bg-emerald-600 px-12 py-3 text-xs font-extrabold uppercase tracking-widest text-white transition hover:bg-emerald-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-1 rounded-full border border-brand-800 bg-brand-800 px-12 py-3 text-xs font-extrabold uppercase tracking-widest text-white shadow-lg shadow-brand-900/15 transition hover:bg-brand-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loadingMode === "signin" ? "PLEASE WAIT..." : "SIGN IN"}
             </button>
@@ -217,7 +217,7 @@ export default function AuthPage({ onAuth }) {
             <button
               type="button"
               onClick={goSignUp}
-              className="mt-1 text-sm font-semibold text-emerald-700 hover:text-emerald-900 md:hidden"
+              className="mt-1 text-sm font-semibold text-brand-700 hover:text-brand-900 md:hidden"
             >
               Need a new account?
             </button>
@@ -232,7 +232,7 @@ export default function AuthPage({ onAuth }) {
         >
           <div
             className={[
-              "relative left-[-100%] h-full w-[200%] bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-900 text-white transition-transform duration-700 ease-in-out",
+              "relative left-[-100%] h-full w-[200%] bg-gradient-to-r from-brand-800 via-brand-700 to-brand-950 text-white transition-transform duration-700 ease-in-out",
               isRightActive ? "translate-x-1/2" : "translate-x-0",
             ].join(" ")}
           >
@@ -278,7 +278,7 @@ export default function AuthPage({ onAuth }) {
       </div>
 
       <div className="mt-6 text-center">
-        <Link className="inline-block text-sm font-semibold text-slate-600 hover:text-slate-900" to="/">
+        <Link className="inline-block text-sm font-semibold text-brand-700 hover:text-brand-950" to="/">
           Back to landing
         </Link>
       </div>
@@ -294,7 +294,7 @@ function AuthInput({ type = "text", placeholder, value, onChange, ...props }) {
       placeholder={placeholder}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none ring-1 ring-transparent transition focus:ring-emerald-500"
+      className="w-full rounded-xl border border-black/5 bg-brand-50/65 px-4 py-3 text-sm text-slate-900 outline-none ring-1 ring-transparent transition placeholder:text-slate-400 focus:border-brand-600 focus:bg-white focus:ring-4 focus:ring-brand-600/10"
     />
   );
 }
@@ -304,7 +304,7 @@ function SocialCircle({ label }) {
     <button
       type="button"
       aria-label={label}
-      className="grid h-10 w-10 place-items-center rounded-full border border-slate-300 text-slate-600 transition hover:bg-slate-50"
+      className="grid h-10 w-10 place-items-center rounded-full border border-brand-100 bg-white/75 text-brand-800 transition hover:bg-brand-50"
       onClick={() => window.alert(`TODO: ${label} auth`)}
     >
       <span className="text-sm font-bold">{label[0]}</span>

@@ -1,4 +1,6 @@
 from django.utils import timezone
+from django.core.exceptions import ImproperlyConfigured
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -6,7 +8,9 @@ from .models import UserPreferences, UserProfile
 from .serializers import ProfileBundleSerializer, UserPreferencesSerializer, UserProfileSerializer
 from .services.advice import profile_advice
 from .services.completeness import require_complete_profile_data
+from .services.dashboard import dashboard_greeting
 from .services.metrics import calculate_metrics
+from .services.weather import update_profile_weather
 
 
 def ensure_profile_bundle(user):
@@ -84,3 +88,25 @@ class ProfileAdviceView(APIView):
             ]
         )
         return Response(advice)
+
+
+class DashboardGreetingView(APIView):
+    def get(self, request):
+        profile, _ = ensure_profile_bundle(request.user)
+        return Response(dashboard_greeting(profile))
+
+
+class ProfileWeatherView(APIView):
+    def post(self, request):
+        profile, preferences = ensure_profile_bundle(request.user)
+        try:
+            update_profile_weather(profile, request.data)
+        except ImproperlyConfigured as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"detail": f"Could not fetch weather: {str(exc)[:200]}"}, status=status.HTTP_502_BAD_GATEWAY)
+        bundle = ProfileBundleSerializer({"profile": profile, "preferences": preferences}).data
+        bundle["dashboard_greeting"] = dashboard_greeting(profile)
+        return Response(bundle)

@@ -25,10 +25,29 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "experience_level",
             "goal_type",
             "focus_muscles",
+            "country",
+            "city",
+            "latitude",
+            "longitude",
+            "location_source",
+            "weather_snapshot",
+            "weather_updated_at",
+            "dashboard_greeting_snapshot",
+            "dashboard_greeting_updated_at",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "age", "focus_muscles", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "age",
+            "focus_muscles",
+            "weather_snapshot",
+            "weather_updated_at",
+            "dashboard_greeting_snapshot",
+            "dashboard_greeting_updated_at",
+            "created_at",
+            "updated_at",
+        ]
 
     def get_age(self, obj):
         if not obj.birth_year:
@@ -36,6 +55,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
         from datetime import date
 
         return max(date.today().year - obj.birth_year, 0)
+
+    def update(self, instance, validated_data):
+        location_fields = ["country", "city", "latitude", "longitude"]
+        location_changed = any(
+            field in validated_data and validated_data.get(field) != getattr(instance, field)
+            for field in location_fields
+        )
+        if location_changed:
+            validated_data["weather_snapshot"] = {}
+            validated_data["weather_updated_at"] = None
+        return super().update(instance, validated_data)
 
 
 class UserPreferencesSerializer(serializers.ModelSerializer):

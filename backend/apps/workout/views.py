@@ -5,9 +5,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.models import Plan
+from apps.common.services.daily_completion import completion_summary, local_date
 from apps.profiles.models import UserProfile
 from apps.profiles.services.completeness import require_complete_profile
-from apps.workout.models import Exercise, WorkoutIntentAnalysis
+from apps.workout.models import Exercise, WorkoutCompletion, WorkoutIntentAnalysis
 from apps.workout.serializers import ExerciseSerializer
 from apps.workout.services.intent import analyze_workout_intent
 from apps.workout.services.planning import generate_workout_plan
@@ -62,7 +63,10 @@ class WorkoutIntentAnalyzeView(APIView):
 class WorkoutPlanGenerateView(APIView):
     def post(self, request):
         require_complete_profile(request.user)
-        return Response(generate_workout_plan(request.user, request.data))
+        try:
+            return Response(generate_workout_plan(request.user, request.data))
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class WorkoutPlanReplaceExerciseView(APIView):
@@ -92,6 +96,25 @@ class WorkoutPlanLatestView(APIView):
         if "plan" not in payload:
             payload = {"plan": payload, "warnings": [], "issues": []}
         return Response(payload)
+
+
+class WorkoutCompletionSummaryView(APIView):
+    def get(self, request):
+        return Response(completion_summary(request.user))
+
+
+class WorkoutCompleteTodayView(APIView):
+    def post(self, request):
+        plan = Plan.objects.filter(user=request.user, plan_type=Plan.PLAN_WORKOUT).first()
+        if not plan:
+            return Response({"detail": "Generate a workout plan before marking today complete."}, status=status.HTTP_400_BAD_REQUEST)
+        today = local_date()
+        WorkoutCompletion.objects.update_or_create(
+            user=request.user,
+            workout_date=today,
+            defaults={"plan": plan},
+        )
+        return Response(completion_summary(request.user))
 
 
 class WorkoutGenerateFromGoalView(APIView):

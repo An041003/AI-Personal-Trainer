@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from apps.common.audit import record_audit
 from apps.common.models import Plan, ShortTermMemoryEntry
+from apps.common.security import assert_user_plan_reference
 from apps.common.short_term_memory import load_short_term_memory, remember_short_term_memory
 from apps.workout.models import Exercise
 from apps.workout.services.formatting import enrich_plan
@@ -218,7 +219,8 @@ def _save_plan_response(user, request_id, updated_plan, response, audit_payload,
 
 def replace_workout_exercise(user, payload):
     request_id = uuid.uuid4()
-    current_plan = deepcopy(payload.get("current_plan") or payload.get("plan") or {})
+    source_plan = assert_user_plan_reference(user, Plan.PLAN_WORKOUT, payload)
+    current_plan = deepcopy((source_plan.payload or {}).get("plan") or {})
     if not current_plan.get("days"):
         raise ValueError("current_plan is required for workout replacement.")
 
@@ -299,7 +301,8 @@ def replace_workout_exercise(user, payload):
 
 def add_workout_exercise(user, payload):
     request_id = uuid.uuid4()
-    current_plan = deepcopy(payload.get("current_plan") or payload.get("plan") or {})
+    source_plan = assert_user_plan_reference(user, Plan.PLAN_WORKOUT, payload)
+    current_plan = deepcopy((source_plan.payload or {}).get("plan") or {})
     if not current_plan.get("days"):
         raise ValueError("current_plan is required for adding an exercise.")
 

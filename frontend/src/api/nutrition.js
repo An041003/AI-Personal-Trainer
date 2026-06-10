@@ -21,6 +21,14 @@ export function getLatestNutritionPlan() {
   return apiRequest("/nutrition/plan/latest/");
 }
 
+export function completeNutritionToday() {
+  return apiRequest("/nutrition/completion/today/", { method: "POST" });
+}
+
+export function getMonthlyCalories(params = "") {
+  return apiRequest(`/nutrition/plan/monthly-calories/${params}`);
+}
+
 export function searchAtoms(params = "") {
   return apiRequest(`/nutrition/atoms/search/${params}`);
 }

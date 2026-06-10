@@ -7,7 +7,7 @@ export function ProfileCompletionNotice({ completeness, showLink = true }) {
 
   if (completeness.isComplete) {
     return (
-      <div className="rounded border border-brand-100 bg-brand-50/70 px-4 py-3 text-sm text-brand-800">
+      <div className="rounded-2xl border border-brand-100 bg-brand-50/80 px-4 py-3 text-sm text-brand-800">
         <div className="flex items-center gap-2 font-semibold">
           <CheckCircle2 size={16} />
           Profile complete
@@ -17,7 +17,7 @@ export function ProfileCompletionNotice({ completeness, showLink = true }) {
   }
 
   return (
-    <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
       <div className="flex flex-wrap items-center gap-2">
         <AlertCircle size={16} />
         <p className="font-semibold">Complete your profile to use workout, nutrition, and AI advice accurately.</p>
@@ -29,7 +29,7 @@ export function ProfileCompletionNotice({ completeness, showLink = true }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {completeness.missingFields.map((item) => (
-          <span key={item.field} className="rounded border border-amber-200 bg-white px-2 py-1 text-xs font-medium">
+          <span key={item.field} className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold">
             {item.label}
           </span>
         ))}

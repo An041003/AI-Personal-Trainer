@@ -1,7 +1,7 @@
-import { Activity, Flame, LoaderCircle, Percent, Save, Scale, Sparkles } from "lucide-react";
+import { Activity, CloudSun, Flame, LoaderCircle, LocateFixed, Percent, Save, Scale, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { getProfile, profileAdvice, saveProfile } from "../api/profile";
+import { getProfile, profileAdvice, saveProfile, updateProfileWeather } from "../api/profile";
 import { FocusMuscles } from "../components/FocusMuscles";
 import { ErrorBanner, Field, SelectInput, TextArea, TextInput } from "../components/FormControls";
 import { ProfileCompletionNotice } from "../components/ProfileCompletionNotice";
@@ -31,6 +31,21 @@ function displayText(value, fallback = "-") {
   if (!hasDisplayValue(value)) return fallback;
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function formatWeather(profile) {
+  const weather = profile?.weather_snapshot || {};
+  const current = weather.current || {};
+  const location = weather.location || {};
+  const city = profile?.city || location.city || location.name;
+  const country = profile?.country || location.country;
+  if (!current.temp_c && !city && !country) return null;
+  return {
+    place: [city, country].filter(Boolean).join(", ") || "-",
+    condition: current.condition_text || "-",
+    temp: current.temp_c !== null && current.temp_c !== undefined ? `${Math.round(Number(current.temp_c))}°C` : "-",
+    humidity: current.humidity !== null && current.humidity !== undefined ? `${current.humidity}% humidity` : "",
+  };
 }
 
 const metricCards = [
@@ -201,6 +216,12 @@ const emptyProfile = {
   experience_level: "beginner",
   goal_type: "recomp",
   focus_muscles: [],
+  country: "",
+  city: "",
+  latitude: "",
+  longitude: "",
+  location_source: "",
+  weather_snapshot: {},
 };
 
 export default function ProfilePage() {
@@ -219,6 +240,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [adviceLoading, setAdviceLoading] = useState(false);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   useEffect(() => {
     getProfile()
@@ -257,6 +279,9 @@ export default function ProfilePage() {
     setError("");
     try {
       const { goal_text: _goalText, ...profilePayload } = profile;
+      for (const key of ["latitude", "longitude"]) {
+        if (profilePayload[key] === "") profilePayload[key] = null;
+      }
       const result = await saveProfile({ profile: profilePayload, preferences: preferencePayload });
       const { goal_text: _savedGoalText, ...savedProfile } = result.profile || {};
       setProfile({ ...emptyProfile, ...savedProfile });
@@ -286,6 +311,54 @@ export default function ProfilePage() {
       setAdviceLoading(false);
     }
   }
+
+  async function refreshWeather(payload) {
+    setWeatherLoading(true);
+    setError("");
+    try {
+      const result = await updateProfileWeather(payload);
+      const { goal_text: _savedGoalText, ...savedProfile } = result.profile || {};
+      setProfile({ ...emptyProfile, ...savedProfile });
+      setMetrics(result.metrics || null);
+      setAdvice(result.advice || null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWeatherLoading(false);
+    }
+  }
+
+  function handleUseCurrentLocation() {
+    if (!navigator.geolocation) {
+      setError("Your browser does not support geolocation.");
+      return;
+    }
+    setWeatherLoading(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        refreshWeather({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (err) => {
+        setWeatherLoading(false);
+        setError(err.message || "Could not access your current location.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  }
+
+  function handleManualWeather() {
+    if (!String(profile.city || "").trim()) {
+      setError("Enter a city before updating weather.");
+      return;
+    }
+    refreshWeather({ city: profile.city, country: profile.country });
+  }
+
+  const weatherSummary = formatWeather(profile);
 
   return (
     <div>
@@ -371,6 +444,75 @@ export default function ProfilePage() {
           </div>
         </section>
       </div>
+
+      <section className="section mt-5">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Location and weather</h2>
+            <p className="mt-1 text-sm text-slate-600">Use GPS or enter city and country so meal plans can adapt to local weather.</p>
+          </div>
+          <button className="btn-secondary justify-center" type="button" onClick={handleUseCurrentLocation} disabled={weatherLoading}>
+            <LocateFixed size={16} />
+            {weatherLoading ? "Checking..." : "Use current location"}
+          </button>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+          <Field label="Country">
+            <TextInput
+              value={profile.country || ""}
+              onChange={(event) =>
+                setProfile({
+                  ...profile,
+                  country: event.target.value,
+                  latitude: null,
+                  longitude: null,
+                  location_source: "manual",
+                  weather_snapshot: {},
+                })
+              }
+              placeholder="Vietnam"
+            />
+          </Field>
+          <Field label="City">
+            <TextInput
+              value={profile.city || ""}
+              onChange={(event) =>
+                setProfile({
+                  ...profile,
+                  city: event.target.value,
+                  latitude: null,
+                  longitude: null,
+                  location_source: "manual",
+                  weather_snapshot: {},
+                })
+              }
+              placeholder="Ho Chi Minh City"
+            />
+          </Field>
+          <div className="flex items-end">
+            <button className="btn-primary w-full justify-center md:w-auto" type="button" onClick={handleManualWeather} disabled={weatherLoading}>
+              <CloudSun size={16} />
+              Update weather
+            </button>
+          </div>
+        </div>
+
+        {weatherSummary ? (
+          <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/70 p-4 text-brand-900">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold">{weatherSummary.place}</p>
+                <p className="mt-1 text-sm text-brand-700">{weatherSummary.condition}</p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-2xl font-semibold">{weatherSummary.temp}</p>
+                {weatherSummary.humidity ? <p className="text-xs font-semibold text-brand-700">{weatherSummary.humidity}</p> : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button className="btn-primary" onClick={handleSave} disabled={saving}>

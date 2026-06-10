@@ -9,6 +9,7 @@ from apps.common.audit import record_audit
 from apps.common.models import Plan, ShortTermMemoryEntry
 from apps.common.openai_client import (
     generate_json,
+    generate_json_with_image,
     get_token_usage,
     reset_token_usage_tracking,
     start_token_usage_tracking,
@@ -19,13 +20,16 @@ from apps.common.prompt import (
     NUTRITION_PLAN_SYSTEM_PROMPT,
     NUTRITION_RECIPE_REPLACEMENT_SYSTEM_PROMPT,
 )
+from apps.common.security import assert_user_plan_reference
 from apps.common.short_term_memory import load_short_term_memory, remember_short_term_memory
 from apps.common.utils import normalize_text
 from apps.nutrition.models import NutritionAtom
 from apps.nutrition.services.calculator import calculate_plan_totals
 from apps.nutrition.services.catalog import resolve_ingredient
 from apps.nutrition.services.evaluation import evaluate_meal_plan
+from apps.nutrition.services.images import enrich_nutrition_payload
 from apps.nutrition.services.optimizer import assign_nutrients, optimize_grams
+from apps.profiles.services.weather import update_profile_weather
 
 
 ROLE_DEFAULT_GRAMS = {
@@ -77,6 +81,51 @@ def _unique_strings(values):
             result.append(text)
             seen.add(key)
     return result
+
+
+def _profile_location_context(user, payload=None):
+    payload = payload or {}
+    context = payload.get("location_context") or {}
+    if context:
+        return context
+    try:
+        profile = user.profile
+    except Exception:
+        return {}
+
+    has_location = bool((profile.latitude is not None and profile.longitude is not None) or profile.city)
+    if has_location:
+        weather_payload = {"city": profile.city, "country": profile.country}
+        if profile.location_source == "gps" and profile.latitude is not None and profile.longitude is not None:
+            weather_payload = {
+                "latitude": profile.latitude,
+                "longitude": profile.longitude,
+                "city": profile.city,
+                "country": profile.country,
+            }
+        try:
+            update_profile_weather(profile, weather_payload)
+        except Exception:
+            pass
+
+    weather = profile.weather_snapshot or {}
+    current = weather.get("current") or {}
+    location = weather.get("location") or {}
+    return {
+        "country": profile.country or location.get("country") or "",
+        "city": profile.city or location.get("city") or location.get("name") or "",
+        "latitude": float(profile.latitude) if profile.latitude is not None else location.get("lat"),
+        "longitude": float(profile.longitude) if profile.longitude is not None else location.get("lon"),
+        "source": profile.location_source or "",
+        "weather": {
+            "temp_c": current.get("temp_c"),
+            "feelslike_c": current.get("feelslike_c"),
+            "humidity": current.get("humidity"),
+            "condition": current.get("condition_text") or "",
+            "wind_kph": current.get("wind_kph"),
+            "uv": current.get("uv"),
+        },
+    }
 
 
 def _canonical_role(role):
@@ -348,6 +397,20 @@ def _role_profile_for_recipe(recipe, meal=None):
 
 
 def _session_memory(replacement_request):
+    if replacement_request.get("ignore_short_term_memory") or replacement_request.get("persist_short_term_memory") is False:
+        return {
+            "scope": replacement_request.get("scope") or "replace_recipe",
+            "domain": "nutrition",
+            "meal_slot": replacement_request.get("meal_slot"),
+            "avoid_recipe_names": [],
+            "avoid_ingredient_names": [],
+            "avoid_atom_ids": [],
+            "reason_code": replacement_request.get("reason_code") or replacement_request.get("reason_type") or "refresh",
+            "must_not_repeat_old_recipe": False,
+            "allow_same_ingredient_group": True,
+            "expires_policy": "none",
+            "created_from_action": "replace_nutrition_no_memory",
+        }
     session = replacement_request.get("session_short_term_memory") or {}
     reason_code = (
         replacement_request.get("reason_code")
@@ -389,6 +452,9 @@ def _session_memory(replacement_request):
 
 def _merge_nutrition_session_memory(replacement_request, db_memory):
     updated = deepcopy(replacement_request or {})
+    if updated.get("ignore_short_term_memory") or updated.get("persist_short_term_memory") is False:
+        updated["session_short_term_memory"] = {}
+        return updated
     session = deepcopy(updated.get("session_short_term_memory") or {})
     session["avoid_recipe_names"] = _unique_strings(
         (db_memory.get("avoid_recipe_names") or [])
@@ -560,6 +626,7 @@ def _constraints_for_replacement(constraints, replacement_request):
 
 
 def _replacement_prompt(
+    user,
     payload,
     current_plan,
     constraints,
@@ -571,15 +638,19 @@ def _replacement_prompt(
     role_profile=None,
     candidate_pools=None,
 ):
+    include_current_as_old = not replacement_request.get("skip_old_plan_as_avoid")
     old_recipe_names = _unique_strings(
-        _recipe_names(current_plan) + (replacement_request.get("old_recipe_names") or [])
+        (_recipe_names(current_plan) if include_current_as_old else [])
+        + (replacement_request.get("old_recipe_names") or [])
     )
     old_meal_titles = _unique_strings(
-        _meal_titles(current_plan) + (replacement_request.get("old_meal_titles") or [])
+        (_meal_titles(current_plan) if include_current_as_old else [])
+        + (replacement_request.get("old_meal_titles") or [])
     )
     if scope == "plan":
         old_ingredient_names = _unique_strings(
-            _ingredient_names(current_plan) + (replacement_request.get("old_ingredient_names") or [])
+            (_ingredient_names(current_plan) if include_current_as_old else [])
+            + (replacement_request.get("old_ingredient_names") or [])
         )
     else:
         session = replacement_request.get("session_short_term_memory") or {}
@@ -588,11 +659,12 @@ def _replacement_prompt(
             + (replacement_request.get("avoid_ingredients") or [])
             + (session.get("avoid_ingredient_names") or [])
         )
+    prompt_replacement_request = _sanitize_replacement_request(replacement_request)
     prompt = {
         "scope": scope,
         "target": target,
         "replacement_request": {
-            **replacement_request,
+            **prompt_replacement_request,
             "old_recipe_names": old_recipe_names,
             "old_meal_titles": old_meal_titles,
             "old_ingredient_names": old_ingredient_names,
@@ -605,6 +677,7 @@ def _replacement_prompt(
         "preferences": payload.get("preferences") or {},
         "medical_flags": payload.get("medical_flags") or {},
         "extra_restrictions": payload.get("extra_restrictions") or [],
+        "location_context": _profile_location_context(user, payload),
         "current_plan_summary": _plan_summary(current_plan),
     }
 
@@ -617,6 +690,17 @@ def _replacement_prompt(
             prompt["target_recipe"] = _recipe_summary(recipe)
 
     return prompt
+
+
+def _sanitize_replacement_request(replacement_request):
+    cleaned = deepcopy(replacement_request or {})
+    eaten = deepcopy(cleaned.get("eaten_different") or {})
+    if eaten.get("image_data_url"):
+        eaten["has_image"] = True
+        eaten["image_data_url"] = "[uploaded image omitted]"
+    if eaten:
+        cleaned["eaten_different"] = eaten
+    return cleaned
 
 
 def _replace_meal(current_plan, target, replacement_meal):
@@ -773,7 +857,14 @@ def _fallback_recipe(role_profile, candidate_pools, memory):
 
     return {
         "recipe_name": "Simple balanced replacement",
-        "instructions": ["Prepare with simple cooking methods and low added salt."],
+        "image_search_query": "simple healthy balanced meal",
+        "image_url": "",
+        "instructions": [
+            "Rinse and prepare the ingredients, then cut them into bite-size pieces.",
+            "Cook the protein with a small amount of oil or water until fully done.",
+            "Cook or warm the carb and vegetables separately so their texture stays clear.",
+            "Plate together and season lightly with herbs, pepper, or a low-sodium sauce.",
+        ],
         "ingredients": ingredients,
     }
 
@@ -808,6 +899,7 @@ def _build_response(user, request_id, optimized, totals, targets, constraints, e
     }
     if response_extra:
         response.update(response_extra)
+    response = enrich_nutrition_payload(response)
     plan = Plan.objects.create(
         user=user,
         plan_type=Plan.PLAN_NUTRITION,
@@ -841,11 +933,47 @@ def _finalize_draft(
     response_extra=None,
 ):
     max_iters = int(options.get("optimizer_iters") or 200)
+    draft = _ensure_requested_meal_slots(draft, targets, constraints)
     record_audit(request_id=request_id, domain="nutrition", step=draft_step, payload={"draft": draft})
     resolved, resolver_warnings = _resolve_draft(draft, constraints)
     optimized, totals = optimize_grams(resolved, targets, constraints=constraints, max_iters=max_iters)
     evaluation = evaluate_meal_plan(optimized, totals, targets, constraints, warnings=resolver_warnings)
     return _build_response(user, request_id, optimized, totals, targets, constraints, evaluation, title, response_extra)
+
+
+def _ensure_requested_meal_slots(draft, targets, constraints):
+    slots = (targets.get("meal_structure") or {}).get("slots") or []
+    requested_slots = [str(slot.get("slot") or "").strip().lower() for slot in slots if slot.get("slot")]
+    if not requested_slots:
+        return draft
+
+    updated = deepcopy(draft or {})
+    days = updated.setdefault("days", [{"day_index": 1, "meals": [], "draft_notes": []}])
+    if not days:
+        days.append({"day_index": 1, "meals": [], "draft_notes": []})
+
+    fallback_draft = _fallback_draft(targets, constraints, {})
+    fallback_meals = {
+        str(meal.get("slot") or "").strip().lower(): meal
+        for meal in (((fallback_draft.get("days") or [{}])[0]).get("meals") or [])
+    }
+
+    for day in days:
+        meals = day.setdefault("meals", [])
+        existing_slots = {str(meal.get("slot") or "").strip().lower() for meal in meals}
+        for slot_name in requested_slots:
+            if slot_name and slot_name not in existing_slots:
+                fallback_meal = deepcopy(fallback_meals.get(slot_name) or fallback_meals.get("lunch") or {})
+                fallback_meal["slot"] = slot_name
+                fallback_meal["title"] = slot_name.title()
+                meals.append(fallback_meal)
+                existing_slots.add(slot_name)
+        meals.sort(
+            key=lambda meal: requested_slots.index(str(meal.get("slot") or "").strip().lower())
+            if str(meal.get("slot") or "").strip().lower() in requested_slots
+            else len(requested_slots)
+        )
+    return updated
 
 
 def _fallback_ingredient_for_role(role, preferred, avoided_names):
@@ -875,6 +1003,99 @@ def _fallback_recipe_name(slot_name, memory):
         if not _name_matches_any(candidate, avoid_names):
             return candidate
     return f"{title} option"
+
+
+def _fallback_recipe_name_for_part(slot_name, part_name, memory):
+    avoid_names = (memory or {}).get("avoid_recipe_names") or []
+    title = str(slot_name or "meal").title()
+    part = str(part_name or "dish").strip().title()
+    candidates = [
+        f"{title} {part}",
+        f"Simple {part}",
+        f"Fresh {part}",
+        f"{part} for {title}",
+    ]
+    for candidate in candidates:
+        if not _name_matches_any(candidate, avoid_names):
+            return candidate
+    return f"{title} {part} option"
+
+
+def _fallback_recipes_for_meal(slot_name, ingredients, memory):
+    if str(slot_name or "").lower() == "snack":
+        return [
+            {
+                "recipe_name": _fallback_recipe_name(slot_name, memory),
+                "image_search_query": f"healthy {slot_name} snack",
+                "image_url": "",
+                "ingredients": ingredients,
+                "instructions": [
+                    "Wash or prepare the ingredients as needed.",
+                    "Portion the snack into a small bowl or plate.",
+                    "Serve chilled or at room temperature depending on the ingredient.",
+                ],
+            }
+        ]
+
+    recipe_groups = [
+        ("protein dish", {"protein", "dairy", "snack"}, "Cook or prepare the protein with simple seasoning."),
+        ("staple side", {"carb", "fruit"}, "Prepare the staple side with minimal added salt or sugar."),
+        ("vegetable side", {"veg", "fat", "sauce"}, "Prepare the vegetables as a simple side dish."),
+    ]
+    recipes = []
+    used_indexes = set()
+    for part_name, roles, instruction in recipe_groups:
+        matched = [
+            (index, ingredient)
+            for index, ingredient in enumerate(ingredients)
+            if index not in used_indexes and ingredient.get("role") in roles
+        ]
+        group_ingredients = [ingredient for _, ingredient in matched]
+        if not group_ingredients:
+            continue
+        used_indexes.update(index for index, _ in matched)
+        recipes.append(
+            {
+                "recipe_name": _fallback_recipe_name_for_part(slot_name, part_name, memory),
+                "image_search_query": f"healthy {part_name}",
+                "image_url": "",
+                "ingredients": group_ingredients,
+                "instructions": [
+                    "Prepare the ingredients and cut them into even pieces.",
+                    instruction,
+                    "Taste and finish with herbs, pepper, or a small amount of low-sodium seasoning.",
+                ],
+            }
+        )
+
+    remaining = [ingredient for index, ingredient in enumerate(ingredients) if index not in used_indexes]
+    if remaining:
+        recipes.append(
+            {
+                "recipe_name": _fallback_recipe_name_for_part(slot_name, "extra side", memory),
+                "image_search_query": f"healthy {slot_name} side dish",
+                "image_url": "",
+                "ingredients": remaining,
+                "instructions": [
+                    "Prepare the extra ingredients and remove any tough stems or peels.",
+                    "Cook quickly by steaming, boiling, or warming until tender.",
+                    "Serve as a side with minimal added salt.",
+                ],
+            }
+        )
+    return recipes or [
+        {
+            "recipe_name": _fallback_recipe_name(slot_name, memory),
+            "image_search_query": f"healthy {slot_name} meal",
+            "image_url": "",
+            "ingredients": ingredients,
+            "instructions": [
+                "Prepare and portion all ingredients before cooking.",
+                "Cook protein, carb, and vegetables separately with simple methods.",
+                "Combine on a plate and season lightly with low-sodium flavorings.",
+            ],
+        }
+    ]
 
 
 def _draft_uses_avoided_recipes(draft, memory):
@@ -914,13 +1135,7 @@ def _fallback_draft(targets, constraints, memory=None):
             {
                 "slot": slot_name,
                 "title": slot_name.title(),
-                "recipes": [
-                    {
-                        "recipe_name": _fallback_recipe_name(slot_name, memory),
-                        "ingredients": ingredients,
-                        "instructions": ["Prepare with low added salt and simple cooking methods."],
-                    }
-                ],
+                "recipes": _fallback_recipes_for_meal(slot_name, ingredients, memory),
             }
         )
     return {"version": "draft_v1", "mode": "day", "days": [{"day_index": 1, "meals": meals, "draft_notes": []}]}
@@ -1041,7 +1256,8 @@ def _finalize_recipe_replacement(
             },
         },
     )
-    _remember_nutrition_memory(user, memory, request_id=request_id, target=target)
+    if replacement_request.get("persist_short_term_memory") is not False:
+        _remember_nutrition_memory(user, memory, request_id=request_id, target=target)
     return response
 
 
@@ -1092,6 +1308,7 @@ def _generate_nutrition_plan(user, payload):
         "preferences": payload.get("preferences") or {},
         "medical_flags": payload.get("medical_flags") or {},
         "extra_restrictions": payload.get("extra_restrictions") or [],
+        "location_context": _profile_location_context(user, payload),
         "short_term_memory": short_term_memory,
         "avoid_recipe_names": short_term_memory.get("avoid_recipe_names") or [],
         "avoid_ingredient_names": short_term_memory.get("avoid_ingredient_names") or [],
@@ -1132,6 +1349,7 @@ def replace_nutrition_plan(user, payload):
 
 def _replace_nutrition_plan(user, payload):
     request_id = uuid.uuid4()
+    source_plan = assert_user_plan_reference(user, Plan.PLAN_NUTRITION, payload)
     scope = str(payload.get("scope") or "").strip().lower()
     replacement_request = deepcopy(payload.get("replacement_request") or {})
     replacement_request = _merge_nutrition_session_memory(
@@ -1143,7 +1361,7 @@ def _replace_nutrition_plan(user, payload):
     if scope not in {"plan", "meal", "recipe"}:
         raise ValueError("Replacement scope must be plan, meal, or recipe.")
 
-    current_plan = deepcopy(payload.get("current_plan") or payload.get("meal_plan") or {})
+    current_plan = deepcopy((source_plan.payload or {}).get("meal_plan") or {})
     if not current_plan.get("days"):
         raise ValueError("current_plan is required for nutrition replacement.")
 
@@ -1172,6 +1390,7 @@ def _replace_nutrition_plan(user, payload):
         memory = _session_memory({**replacement_request, "scope": scope})
 
     prompt = _replacement_prompt(
+        user,
         payload,
         current_plan,
         constraints,
@@ -1188,7 +1407,7 @@ def _replace_nutrition_plan(user, payload):
         request_id=request_id,
         domain="nutrition",
         step="replacement_request",
-        payload={"scope": scope, "target": target, "replacement_request": replacement_request},
+        payload={"scope": scope, "target": target, "replacement_request": _sanitize_replacement_request(replacement_request)},
     )
 
     if scope == "plan":
@@ -1209,11 +1428,29 @@ def _replace_nutrition_plan(user, payload):
             raise RuntimeError(f"Could not generate nutrition replacement with LLM: {exc}") from exc
     elif scope == "meal":
         try:
-            raw = generate_json(
-                NUTRITION_MEAL_REPLACEMENT_SYSTEM_PROMPT,
-                prompt_json,
-                max_retries=int(options.get("max_llm_retries") or 1),
-            )
+            meal_system_prompt = NUTRITION_MEAL_REPLACEMENT_SYSTEM_PROMPT
+            image_data_url = (replacement_request.get("eaten_different") or {}).get("image_data_url")
+            if replacement_request.get("reason_type") == "ate_different":
+                meal_system_prompt += (
+                    "\n\nActual eaten meal rules:\n"
+                    "- The user already ate a different meal for this slot.\n"
+                    "- Use the user's text description and uploaded image when provided to infer the actual eaten foods.\n"
+                    "- Return the most realistic ingredient-level replacement meal for what the user ate, not a new recommendation.\n"
+                    "- Estimate practical ingredient names and draft quantities conservatively. The backend will calculate nutrition totals.\n"
+                )
+            if image_data_url and replacement_request.get("reason_type") == "ate_different":
+                raw = generate_json_with_image(
+                    meal_system_prompt,
+                    prompt_json,
+                    image_data_url,
+                    max_retries=int(options.get("max_llm_retries") or 1),
+                )
+            else:
+                raw = generate_json(
+                    meal_system_prompt,
+                    prompt_json,
+                    max_retries=int(options.get("max_llm_retries") or 1),
+                )
             draft = _replace_meal(current_plan, target, _extract_meal(raw))
         except Exception as exc:
             record_audit(
@@ -1276,11 +1513,12 @@ def _replace_nutrition_plan(user, payload):
                 "old_recipe_names": prompt["replacement_request"]["old_recipe_names"],
             },
             "short_term_memory_applied": {
-                "avoid_recipes": memory.get("avoid_recipe_names"),
-                "avoid_ingredients": memory.get("avoid_ingredient_names"),
+                "avoid_recipes": memory.get("avoid_recipe_names") if replacement_request.get("persist_short_term_memory") is not False else [],
+                "avoid_ingredients": memory.get("avoid_ingredient_names") if replacement_request.get("persist_short_term_memory") is not False else [],
                 "reason_code": memory.get("reason_code"),
             },
         },
     )
-    _remember_nutrition_memory(user, memory, request_id=request_id, target=target)
+    if replacement_request.get("persist_short_term_memory") is not False:
+        _remember_nutrition_memory(user, memory, request_id=request_id, target=target)
     return response

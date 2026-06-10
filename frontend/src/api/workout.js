@@ -21,6 +21,14 @@ export function getLatestWorkoutPlan() {
   return apiRequest("/workout/plan/latest/");
 }
 
+export function getWorkoutCompletionSummary() {
+  return apiRequest("/workout/completion/summary/");
+}
+
+export function completeWorkoutToday() {
+  return apiRequest("/workout/completion/today/", { method: "POST" });
+}
+
 export function searchExercises(params = "") {
   return apiRequest(`/workout/exercises/search/${params}`);
 }
